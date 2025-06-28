@@ -1,0 +1,175 @@
+import NextAuth from 'next-auth'
+import GoogleProvider from 'next-auth/providers/google'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { MongoDBAdapter } from '@auth/mongodb-adapter'
+import bcrypt from 'bcryptjs'
+import clientPromise from '@/lib/mongodb'
+
+// Helper functions
+export async function verifyPassword(password, hashedPassword) {
+  try {
+    return await bcrypt.compare(password, hashedPassword)
+  } catch (error) {
+    console.error('Error verifying password:', error)
+    return false
+  }
+}
+
+export async function getUserByEmail(email) {
+  try {
+    const client = await clientPromise
+    const db = client.db()
+    
+    // Case-insensitive email search
+    const user = await db.collection('users').findOne({ 
+      email: { $regex: new RegExp(`^${email}$`, 'i') }
+    })
+    
+    if (!user) return null
+    
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      password: user.password,
+      image: user.image,
+    }
+  } catch (error) {
+    console.error('Error getting user by email:', error)
+    return null
+  }
+}
+
+// Define authOptions as a separate object
+export const authOptions = {
+  adapter: MongoDBAdapter(clientPromise),
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          firstName: profile.given_name,
+          lastName: profile.family_name,
+        }
+      },
+    }),
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email and password are required')
+        }
+
+        try {
+          const user = await getUserByEmail(credentials.email)
+          
+          if (!user) {
+            throw new Error('Invalid credentials')
+          }
+
+          const isPasswordValid = await verifyPassword(
+            credentials.password,
+            user.password
+          )
+
+          if (!isPasswordValid) {
+            throw new Error('Invalid credentials')
+          }
+
+          // Return user object without password
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            image: user.image,
+          }
+        } catch (error) {
+          console.error('Auth error:', error)
+          throw new Error('Authentication failed')
+        }
+      }
+    })
+  ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  callbacks: {
+    async jwt({ token, user, account, profile }) {
+      // Initial sign in
+      if (user) {
+        token.id = user.id
+        token.firstName = user.firstName
+        token.lastName = user.lastName
+        token.username = user.username
+      }
+      
+      // Handle Google OAuth profile data
+      if (account?.provider === 'google' && profile) {
+        token.firstName = profile.given_name
+        token.lastName = profile.family_name
+      }
+      
+      return token
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id
+        session.user.firstName = token.firstName
+        session.user.lastName = token.lastName
+        session.user.username = token.username
+      }
+      return session
+    },
+    async signIn({ user, account, profile }) {
+      // Allow sign in
+      return true
+    },
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
+    }
+  },
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/error',
+    signOut: '/auth/logout',
+  },
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      console.log(`User ${user.email} signed in via ${account.provider}`)
+    },
+    async signOut({ session, token }) {
+      console.log(`User signed out`)
+    },
+  },
+  debug: process.env.NODE_ENV === 'development',
+  secret: process.env.NEXTAUTH_SECRET,
+}
+
+// Create the handler
+const handler = NextAuth(authOptions)
+
+// Export GET and POST handlers
+export { handler as GET, handler as POST }
