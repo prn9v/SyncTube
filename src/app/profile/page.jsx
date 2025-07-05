@@ -50,35 +50,133 @@ import Sidebar from "@/components/Sidebar";
 import MusicPlayer from "@/components/MusicPlayer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useSession } from 'next-auth/react'
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [userPlaylists,setUserPlaylists] = useState([]);
   const [scrollY, setScrollY] = useState(0);
+  const [userGroups, setUserGroups] = useState([]);
+  const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState("");
+  const [updateSuccess, setUpdateSuccess] = useState("");
+  const router = useRouter();
+
+  // Format join date function
+  const formatJoinDate = (date) => {
+    if (!date) return "Unknown";
+    
+    try {
+      const joinDate = new Date(date);
+      const year = joinDate.getFullYear().toString().slice(-2); // Get last 2 digits
+      const month = joinDate.toLocaleDateString('en-US', { month: 'long' });
+      const day = joinDate.getDate().toString().padStart(2, '0');
+      
+      return `${day}-${month}-${year}`;
+    } catch (error) {
+      return "Unknown";
+    }
+  };
 
   // User data from session or fallback
   const user = {
     id: session?.user?.id,
-    name: session?.user?.name ,
-    username: session?.user?.username ,
+    name: session?.user?.name,
+    username: session?.user?.username,
     email: session?.user?.email || "alex.johnson@example.com",
     bio: session?.user?.bio || "",
     location: session?.user?.location || "",
-    joinDate: session?.expires || "",
+    joinDate: formatJoinDate(session?.user?.createdAt),
     avatar: session?.user?.image || "/placeholder.svg?height=120&width=120",
     coverImage: "/placeholder.svg?height=200&width=800",
     isVerified: true,
     isPremium: true,
   };
 
+  console.log("session: ",session?.user);
+
+  console.log("user: ",user);
+
   const stats = {
-    totalPlaylists: session?.user?.playlists || 0,
-    totalGroups: session?.user?.groups || 0,
+    totalPlaylists: session?.user?.playlists.length || 0,
+    totalGroups: session?.user?.groups.length || 0,
     totalListeningTime: "2,847 hours",
     favoriteGenre: "Indie Rock",
     songsLiked: session?.user?.likedSongs || 0,
     groupsCreated: session?.user?.groups || 0,
   };
+
+  useEffect(() => {
+    async function fetchPlaylists() {
+      if (Array.isArray(session?.user?.playlists) && session.user.playlists.length > 0) {
+        try {
+          const res = await fetch("/api/playlist/by-ids", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: session.user.playlists }),
+          });
+          
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          
+          const data = await res.json();
+          setUserPlaylists(data.playlists || []);
+        } catch (error) {
+          setUserPlaylists([]);
+        }
+      } else {
+        setUserPlaylists([]);
+      }
+    }
+    
+    if (session) {
+      fetchPlaylists();
+    }
+  }, [session]);
+
+  useEffect(() => {
+    async function fetchSpotifyPlaylists() {
+      try {
+        const res = await fetch("/api/spotify/search?q=top&type=playlists&limit=10");
+        const data = await res.json();
+        setSpotifyPlaylists(data.playlists || []);
+      } catch (error) {
+        setSpotifyPlaylists([]);
+      }
+    }
+    fetchSpotifyPlaylists();
+  }, []);
+
+
+  useEffect(() => {
+    async function fetchGroups() {
+      if (Array.isArray(session?.user?.groups) && session.user.groups.length > 0) {
+        try {
+          const res = await fetch("/api/group/by-ids", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: session.user.groups }),
+          });
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          const data = await res.json();
+          setUserGroups(data.groups || []);
+        } catch (error) {
+          setUserGroups([]);
+        }
+      } else {
+        setUserGroups([]);
+      }
+    }
+    if (session) {
+      fetchGroups();
+    }
+  }, [session]);
+
 
   // Show first 5 songs from the first playlist as recent activity
   const recentActivity = (session?.user?.playlists && Array.isArray(session.user.playlists) && session.user.playlists[0]?.songs && Array.isArray(session.user.playlists[0].songs))
@@ -91,52 +189,6 @@ export default function ProfilePage() {
       }))
     : [];
 
-  const userPlaylists = (session?.user?.playlists && Array.isArray(session.user.playlists))
-    ? session.user.playlists
-    : [];
-
-  // Map userGroups to match GroupSession model for rendering
-  const userGroups = (session?.user?.groups && Array.isArray(session.user.groups))
-    ? session.user.groups.map(group => ({
-        id: group._id,
-        name: group.inviteCode || "Group",
-        members: Array.isArray(group.members) ? group.members.length : 0,
-        role: group.admin === session?.user?.id ? "Admin" : "Member",
-        image: "/placeholder.svg?height=80&width=80",
-        isActive: !!group.nowPlaying,
-      }))
-    : [];
-
-  const achievements = [
-    {
-      id: 1,
-      title: "Playlist Master",
-      description: "Created 20+ playlists",
-      icon: Music,
-      earned: true,
-    },
-    {
-      id: 2,
-      title: "Group Leader",
-      description: "Created 3+ groups",
-      icon: Crown,
-      earned: true,
-    },
-    {
-      id: 3,
-      title: "Music Explorer",
-      description: "Listened to 100+ different artists",
-      icon: Star,
-      earned: true,
-    },
-    {
-      id: 4,
-      title: "Night Owl",
-      description: "Listen to music after midnight 50+ times",
-      icon: Activity,
-      earned: false,
-    },
-  ];
 
   // Scroll effect
   useEffect(() => {
@@ -162,6 +214,53 @@ export default function ProfilePage() {
   const parallaxOffset = scrollY * 0.5;
   const headerOpacity = Math.max(0, 1 - scrollY / 200);
   const contentTransform = `translateY(${Math.max(0, scrollY * 0.1)}px)`;
+
+  // Handle profile update
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    setUpdateError("");
+    setUpdateSuccess("");
+
+    try {
+      const formData = new FormData(e.target);
+      const updateData = {
+        userId: session.user?.id,
+        name: formData.get('name'),
+        username: formData.get('username'),
+        bio: formData.get('bio'),
+        location: formData.get('location'),
+      };
+
+      console.log("data: ",updateData);
+      const response = await fetch('/api/user/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      setUpdateSuccess('Profile updated successfully!');
+      setIsEditingProfile(false);
+      
+      // Refresh the page to show updated data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (error) {
+      setUpdateError(error.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -249,7 +348,7 @@ export default function ProfilePage() {
                         <DialogTrigger asChild>
                           <Button
                             variant="outline"
-                            className="gap-2 bg-black text-white hover:bg-gray-800 hover:text-white transition-all duration-300 hover:scale-105"
+                            className="gap-2 bg-black text-white hover:bg-gray-800 hover:text-white transition-all duration-300 hover:scale-105 cursor-pointer"
                           >
                             <Edit3 className="h-4 w-4" />
                             Edit Profile
@@ -263,64 +362,85 @@ export default function ProfilePage() {
                               you're done.
                             </DialogDescription>
                           </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="name" className="text-right">
-                                Name
-                              </Label>
-                              <Input
-                                id="name"
-                                defaultValue={user.name}
-                                className="col-span-3"
-                              />
+                          <form onSubmit={handleProfileUpdate}>
+                            <div className="grid gap-4 py-4">
+                              {updateError && (
+                                <div className="text-red-500 text-sm bg-red-50 p-2 rounded">
+                                  {updateError}
+                                </div>
+                              )}
+                              {updateSuccess && (
+                                <div className="text-green-500 text-sm bg-green-50 p-2 rounded">
+                                  {updateSuccess}
+                                </div>
+                              )}
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">
+                                  Name
+                                </Label>
+                                <Input
+                                  id="name"
+                                  name="name"
+                                  defaultValue={user.name}
+                                  className="col-span-3"
+                                  required
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="username" className="text-right">
+                                  Username
+                                </Label>
+                                <Input
+                                  id="username"
+                                  name="username"
+                                  defaultValue={user.username}
+                                  className="col-span-3"
+                                  required
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="bio" className="text-right">
+                                  Bio
+                                </Label>
+                                <Textarea
+                                  id="bio"
+                                  name="bio"
+                                  defaultValue={user.bio}
+                                  className="col-span-3"
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="location" className="text-right">
+                                  Location
+                                </Label>
+                                <Input
+                                  id="location"
+                                  name="location"
+                                  defaultValue={user.location}
+                                  className="col-span-3"
+                                />
+                              </div>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="username" className="text-right">
-                                Username
-                              </Label>
-                              <Input
-                                id="username"
-                                defaultValue={user.username}
-                                className="col-span-3"
-                              />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="bio" className="text-right">
-                                Bio
-                              </Label>
-                              <Textarea
-                                id="bio"
-                                defaultValue={user.bio}
-                                className="col-span-3"
-                              />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="location" className="text-right">
-                                Location
-                              </Label>
-                              <Input
-                                id="location"
-                                defaultValue={user.location}
-                                className="col-span-3"
-                              />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button
-                              type="submit"
-                              onClick={() => setIsEditingProfile(false)}
-                            >
-                              Save changes
-                            </Button>
-                          </DialogFooter>
+                            <DialogFooter>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsEditingProfile(false)}
+                                disabled={isUpdating}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="submit"
+                                disabled={isUpdating}
+                              >
+                                {isUpdating ? "Saving..." : "Save changes"}
+                              </Button>
+                            </DialogFooter>
+                          </form>
                         </DialogContent>
                       </Dialog>
-                      <Button
-                        variant="outline"
-                        className="bg-black text-white hover:bg-gray-800 hover:text-white transition-all duration-300 hover:scale-105"
-                      >
-                        Share Profile
-                      </Button>
+                      
                     </div>
                   </div>
 
@@ -352,122 +472,29 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Tabs */}
-                  <Tabs defaultValue="overview" className="mt-8">
+                  <Tabs defaultValue="playlists" className="mt-8">
                     <TabsList className="mb-6 px-4 bg-gray-800">
                       <TabsTrigger
-                        value="overview"
-                        className="text-white data-[state=active]:text-black"
-                      >
-                        Overview
-                      </TabsTrigger>
-                      <TabsTrigger
                         value="playlists"
-                        className="text-white data-[state=active]:text-black"
+                        className="text-white data-[state=active]:text-black cursor-pointer"
                       >
                         Playlists
                       </TabsTrigger>
                       <TabsTrigger
                         value="groups"
-                        className="text-white data-[state=active]:text-black"
+                        className="text-white data-[state=active]:text-black cursor-pointer"
                       >
                         Groups
                       </TabsTrigger>
                       <TabsTrigger
-                        value="achievements"
-                        className="text-white data-[state=active]:text-black"
+                        value="recommened-playlist"
+                        className="text-white data-[state=active]:text-black cursor-pointer"
                       >
                         Recommended Playlist
                       </TabsTrigger>
-                      <TabsTrigger
-                        value="settings"
-                        className="text-white data-[state=active]:text-black"
-                      >
-                        Settings
-                      </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="overview" className="space-y-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Recent Activity */}
-                        <Card className="bg-black border-0 hover:bg-gray-900 transition-all duration-300">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-white">
-                              <Activity className="h-5 w-5" />
-                              Recent Activity
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-4">
-                              {recentActivity.map((activity, index) => (
-                                <div
-                                  key={activity.id}
-                                  className="flex items-center gap-3 hover:bg-gray-800 p-2 rounded-md transition-all duration-300"
-                                  style={{ animationDelay: `${index * 0.1}s` }}
-                                >
-                                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                    <activity.icon className="h-4 w-4 text-primary" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="text-sm text-white">
-                                      {activity.title}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {activity.time}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* Top Stats */}
-                        <Card className="bg-black border-0 hover:bg-gray-900 transition-all duration-300">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-white">
-                              <Trophy className="h-5 w-5" />
-                              Your Stats
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-4">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-white">
-                                  Favorite Genre
-                                </span>
-                                <Badge variant="secondary">
-                                  {stats.favoriteGenre}
-                                </Badge>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-white">
-                                  Groups Created
-                                </span>
-                                <span className="font-semibold text-white">
-                                  {stats.groupsCreated}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-white">
-                                  Followers
-                                </span>
-                                <span className="font-semibold text-white">
-                                  {stats.totalFollowers}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-white">
-                                  Following
-                                </span>
-                                <span className="font-semibold text-white">
-                                  {stats.totalFollowing}
-                                </span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </TabsContent>
+                
 
                     <TabsContent value="playlists">
                       {userPlaylists.length === 0 ? (
@@ -476,15 +503,15 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                           {userPlaylists.map((playlist, index) => (
                             <Card
-                              key={playlist.id}
+                              key={playlist._id}
                               className="bg-black hover:bg-gray-900 transition-all duration-300 border-0 overflow-hidden group hover:scale-105"
                               style={{ animationDelay: `${index * 0.1}s` }}
                             >
                               <CardContent className="p-4">
                                 <div className="relative aspect-square mb-3 rounded-md overflow-hidden">
                                   <img
-                                    src={playlist.image || "/placeholder.svg"}
-                                    alt={playlist.title}
+                                    src={playlist.coverUrl || "/placeholder.svg"}
+                                    alt={playlist.playlistName}
                                     className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
                                   />
                                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
@@ -499,13 +526,13 @@ export default function ProfilePage() {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1 min-w-0">
                                     <h3 className="font-semibold truncate text-white">
-                                      {playlist.title}
+                                      {playlist?.playlistName}
                                     </h3>
                                     <p className="text-xs text-gray-300 truncate">
-                                      {playlist.description}
+                                      {playlist?.description}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                      {playlist.songCount} songs
+                                      {playlist?.songs.length} songs
                                     </p>
                                   </div>
                                   <Badge
@@ -514,7 +541,7 @@ export default function ProfilePage() {
                                     }
                                     className="ml-2 text-xs"
                                   >
-                                    {playlist.isPublic ? "Public" : "Private"}
+                                    {playlist?.owner?.name}
                                   </Badge>
                                 </div>
                               </CardContent>
@@ -526,286 +553,120 @@ export default function ProfilePage() {
 
                     <TabsContent value="groups">
                       <div className="space-y-4">
-                        {userGroups.map((group, index) => (
-                          <Card
-                            key={group.id}
-                            className="bg-black border-0 hover:bg-gray-900 transition-all duration-300 hover:scale-102"
-                            style={{ animationDelay: `${index * 0.1}s` }}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <img
-                                    src={group.image || "/placeholder.svg"}
-                                    alt={group.name}
-                                    className="h-12 w-12 rounded-md object-cover hover:scale-110 transition-transform"
-                                  />
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <h3 className="font-semibold text-white">
-                                        {group.name}
-                                      </h3>
-                                      {group.role === "Admin" && (
-                                        <Crown className="h-4 w-4 text-yellow-500" />
-                                      )}
-                                      {group.isActive && (
-                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                                      )}
+                        {userGroups.map((group, index) => {
+                          const isAdmin = group.admin === session?.user?.id || group.owner === session?.user?.id;
+                          return (
+                            <Card
+                              key={group._id}
+                              className={`
+                                relative
+                                bg-gradient-to-br from-gray-900 via-black to-gray-800
+                                border-0
+                                shadow-lg
+                                rounded-2xl
+                                overflow-hidden
+                                transition-all duration-300
+                              
+                                hover:shadow-2xl
+                                group
+                                before:absolute before:inset-0 before:rounded-2xl
+                                before:bg-gradient-to-r before:from-green-400/30 before:to-blue-500/20
+                                before:opacity-0 hover:before:opacity-100 before:transition-opacity
+                              `}
+                              style={{ animationDelay: `${index * 0.1}s` }}
+                            >
+                              <CardContent className="p-6 relative z-10">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    {/* Group Avatar/Icon */}
+                                    <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-green-500 via-blue-500 to-purple-500 flex items-center justify-center shadow-md border-4 border-black">
+                                      <Users className="h-7 w-7 text-white" />
                                     </div>
-                                    <p className="text-sm text-gray-300">
-                                      {group.members} members • {group.role}
-                                    </p>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-lg text-white drop-shadow">
+                                          {group.groupName || group.inviteCode || "Group"}
+                                        </h3>
+                                        {isAdmin && (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-yellow-400 text-black text-xs font-semibold ml-1 shadow">
+                                            <Crown className="h-4 w-4 mr-1" /> Admin
+                                          </span>
+                                        )}
+                                        {group.nowPlaying && (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-green-500 text-white text-xs font-semibold ml-1 animate-pulse shadow">
+                                            <Volume2 className="h-4 w-4 mr-1" /> Now Playing
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-gray-300 mt-1">
+                                        {Array.isArray(group.members) ? group.members.length : 0} members • {isAdmin ? "Admin" : "Member"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="hover:scale-105 transition-transform bg-black text-green-400 border-gray-600 hover:bg-gray-800 hover:text-white cursor-pointer"
+                                      onClick={() => router.push(`/group-session/${group.inviteCode}`)}
+                                    >
+                                      {group.nowPlaying ? "Join Session" : "View Group"}
+                                    </Button>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="recommened-playlist">
+                      <div className="max-h-108 overflow-y-auto scrollbar-thin scrollbar-thumb-black scrollbar-track-gray-800 grid grid-cols-1 sm:grid-cols-2 gap-8 ">
+                        {spotifyPlaylists.length > 0 ? (
+                          spotifyPlaylists.map((playlist, index) => (
+                            <Card
+                              key={playlist.id}
+                              className="bg-black hover:bg-gray-900 transition-all duration-300 border-0 overflow-hidden group text-white flex flex-row h-64 w-full"
+                              style={{ animationDelay: `${index * 0.1}s` }}
+                            >
+                              <div className="flex-shrink-0 w-40 h-40 relative">
+                                <img
+                                  src={playlist.images?.[0]?.url || "/placeholder.svg"}
+                                  alt={playlist.name}
+                                  className="object-cover w-full h-full rounded-l-md transition-transform duration-300 group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
                                   <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="hover:scale-105 transition-transform bg-black text-green-400 border-gray-600 hover:bg-gray-800 hover:text-white"
+                                    size="icon"
+                                    className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 w-12 hover:scale-110 transition-transform cursor-pointer"
+                                    onClick={() => window.open(playlist.external_url, '_blank')}
                                   >
-                                    {group.isActive
-                                      ? "Join Session"
-                                      : "View Group"}
+                                    <Play className="h-6 w-6" />
                                   </Button>
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              <CardContent className="flex flex-col justify-center flex-1 px-4 mb-20">
+                                <h3 className="text-lg font-bold text-white truncate mb-1">{playlist.name}</h3>
+                                <p className="text-xs text-gray-300 truncate mb-2">{playlist.description || 'No description available'}</p>
+                                <div className="flex items-center gap-4 text-xs text-gray-400 mb-1">
+                                  <span>By {playlist.owner}</span>
+                                  <span>• {playlist.tracks_count} tracks</span>
+                                </div>
+                                
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 text-gray-400 col-span-full">
+                            <p className="text-sm">No playlists found</p>
+                          </div>
+                        )}
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="achievements">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {achievements.map((achievement, index) => (
-                          <Card
-                            key={achievement.id}
-                            className={`border-0 hover:scale-105 transition-all duration-300 ${
-                              achievement.earned
-                                ? "bg-primary/10 border-primary/20 hover:bg-primary/20"
-                                : "bg-gray-900 hover:bg-gray-800"
-                            }`}
-                            style={{ animationDelay: `${index * 0.1}s` }}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-4">
-                                <div
-                                  className={`h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                    achievement.earned
-                                      ? "bg-primary/20 text-primary"
-                                      : "bg-muted text-muted-foreground"
-                                  }`}
-                                >
-                                  <achievement.icon className="h-6 w-6" />
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="font-semibold text-white">
-                                    {achievement.title}
-                                  </h3>
-                                  <p className="text-sm text-gray-300">
-                                    {achievement.description}
-                                  </p>
-                                </div>
-                                {achievement.earned && (
-                                  <Badge className="bg-primary/20 text-primary border-primary/30 animate-pulse">
-                                    Earned
-                                  </Badge>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="settings" className="space-y-6">
-                      <Card className="bg-black border-0 hover:bg-gray-900 transition-all duration-300">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-white">
-                            <User className="h-5 w-5" />
-                            Account Settings
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="email" className="text-white">
-                                Email
-                              </Label>
-                              <Input
-                                id="email"
-                                type="email"
-                                defaultValue={user.email}
-                                className="bg-gray-800 border-gray-700 text-white"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="language" className="text-white">
-                                Language
-                              </Label>
-                              <Select defaultValue="en">
-                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="en">English</SelectItem>
-                                  <SelectItem value="es">Spanish</SelectItem>
-                                  <SelectItem value="fr">French</SelectItem>
-                                  <SelectItem value="de">German</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-black border-0 hover:bg-gray-900 transition-all duration-300">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-white">
-                            <Bell className="h-5 w-5" />
-                            Notifications
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                Group Invitations
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                Get notified when someone invites you to a group
-                              </div>
-                            </div>
-                            <Switch defaultChecked />
-                          </div>
-                          <Separator className="bg-gray-700" />
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                New Followers
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                Get notified when someone follows you
-                              </div>
-                            </div>
-                            <Switch defaultChecked />
-                          </div>
-                          <Separator className="bg-gray-700" />
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                Playlist Updates
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                Get notified about updates to shared playlists
-                              </div>
-                            </div>
-                            <Switch />
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-black border-0 hover:bg-gray-900 transition-all duration-300">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-white">
-                            <Volume2 className="h-5 w-5" />
-                            Audio Settings
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="space-y-2">
-                            <Label className="text-white">Audio Quality</Label>
-                            <Select defaultValue="high">
-                              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="low">
-                                  Low (96 kbps)
-                                </SelectItem>
-                                <SelectItem value="normal">
-                                  Normal (160 kbps)
-                                </SelectItem>
-                                <SelectItem value="high">
-                                  High (320 kbps)
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Separator className="bg-gray-700" />
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                Crossfade
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                Smooth transition between songs
-                              </div>
-                            </div>
-                            <Switch defaultChecked />
-                          </div>
-                          <Separator className="bg-gray-700" />
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                Normalize Volume
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                Set the same volume level for all tracks
-                              </div>
-                            </div>
-                            <Switch defaultChecked />
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-black border-0 hover:bg-gray-900 transition-all duration-300">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-white">
-                            <Shield className="h-5 w-5" />
-                            Privacy Settings
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                Public Profile
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                Allow others to see your profile and activity
-                              </div>
-                            </div>
-                            <Switch defaultChecked />
-                          </div>
-                          <Separator className="bg-gray-700" />
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                Show Listening Activity
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                Let friends see what you're currently listening
-                                to
-                              </div>
-                            </div>
-                            <Switch defaultChecked />
-                          </div>
-                          <Separator className="bg-gray-700" />
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-white">
-                                Allow Group Invitations
-                              </div>
-                              <div className="text-sm text-gray-700">
-                                Let anyone invite you to groups
-                              </div>
-                            </div>
-                            <Switch />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
+                    
                   </Tabs>
                 </div>
               </div>

@@ -8,11 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Upload, Music, Search, Plus, X } from "lucide-react";
+import { ArrowLeft, Upload, Music, Search, Plus, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/Sidebar";
 import MusicPlayer from "@/components/MusicPlayer";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { MainNav } from "@/components/main-nav";
+import { useSession } from 'next-auth/react';
+import { useSpotifyComprehensiveSearch } from "@/hooks/useSpotify";
 
 const CreatePlaylist = () => {
   const router = useRouter();
@@ -24,66 +27,31 @@ const CreatePlaylist = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSongs, setSelectedSongs] = useState([]);
+  const { data: session, status } = useSession();
+  const { searchResults, loading, error, searchAll } = useSpotifyComprehensiveSearch();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const mockSongs = [
-    {
-      id: 1,
-      title: "Never Gonna Give You Up",
-      artist: "Rick Astley",
-      album: "Whenever You Need Somebody",
-      duration: "3:32",
-    },
-    {
-      id: 2,
-      title: "Blinding Lights",
-      artist: "The Weeknd",
-      album: "After Hours",
-      duration: "3:20",
-    },
-    {
-      id: 3,
-      title: "Shape of You",
-      artist: "Ed Sheeran",
-      album: "÷",
-      duration: "3:54",
-    },
-    {
-      id: 4,
-      title: "Dance Monkey",
-      artist: "Tones and I",
-      album: "The Kids Are Coming",
-      duration: "3:29",
-    },
-    {
-      id: 5,
-      title: "Uptown Funk",
-      artist: "Mark Ronson ft. Bruno Mars",
-      album: "Uptown Special",
-      duration: "4:30",
-    },
-    {
-      id: 6,
-      title: "Someone Like You",
-      artist: "Adele",
-      album: "21",
-      duration: "4:45",
-    },
-    {
-      id: 7,
-      title: "Despacito",
-      artist: "Luis Fonsi ft. Daddy Yankee",
-      album: "VIDA",
-      duration: "3:47",
-    },
-  ];
+  
 
-  const filteredSongs = searchQuery
-    ? mockSongs.filter(
-        (song) =>
-          song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          song.artist.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : mockSongs;
+  // Helper function to format duration from milliseconds
+  const formatDuration = (ms) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = ((ms % 60000) / 1000).toFixed(0);
+    return `${minutes}:${seconds.padStart(2, '0')}`;
+  };
+
+  // Helper function to get the best image URL
+  const getImageUrl = (images, fallback = "https://via.placeholder.com/200?text=No+Image") => {
+    if (!images || images.length === 0) return fallback;
+    const mediumImage = images.find(img => img.width >= 200 && img.width <= 400);
+    return mediumImage ? mediumImage.url : images[0].url;
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    searchAll(searchQuery, 20);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -109,12 +77,21 @@ const CreatePlaylist = () => {
     }
   };
 
-  const toggleSongSelection = (song) => {
+  const toggleSongSelection = (track) => {
     setSelectedSongs((prev) => {
-      const isSelected = prev.find((s) => s.id === song.id);
+      const isSelected = prev.find((s) => s.id === track.id);
       if (isSelected) {
-        return prev.filter((s) => s.id !== song.id);
+        return prev.filter((s) => s.id !== track.id);
       } else {
+        // Convert Spotify track to our song format
+        const song = {
+          id: track.id,
+          title: track.name,
+          artist: track.artists?.map(artist => artist.name).join(', ') || 'Unknown Artist',
+          album: track.album?.name || 'Unknown Album',
+          duration: formatDuration(track.duration_ms),
+          spotifyData: track // Keep original Spotify data
+        };
         return [...prev, song];
       }
     });
@@ -124,25 +101,74 @@ const CreatePlaylist = () => {
     setSelectedSongs((prev) => prev.filter((s) => s.id !== songId));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!playlistData.name.trim()) {
       toast.error("Please enter a playlist name");
       return;
     }
 
-    console.log("Creating playlist:", {
-      ...playlistData,
-      songs: selectedSongs,
-    });
-    toast.success(`Playlist created with ${selectedSongs.length} songs!`);
-    router.push("/playlist");
+    if (!session?.user?.id) {
+      toast.error("Please log in to create a playlist");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Prepare playlist data
+      const playlistPayload = {
+        playlistName: playlistData.name,
+        description: playlistData.description,
+        coverUrl: imagePreview, // Use the image preview URL
+        songs: selectedSongs,
+        owner: session.user// Only the user id!
+      };
+
+      // Call the API to create playlist
+      const response = await fetch('/api/playlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(playlistPayload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create playlist');
+      }
+
+      toast.success(`Playlist "${playlistData.name}" created successfully with ${selectedSongs.length} songs!`);
+      
+      // Reset form
+      setPlaylistData({
+        name: "",
+        description: "",
+        coverImage: null,
+      });
+      setImagePreview(null);
+      setSelectedSongs([]);
+      setSearchQuery("");
+      
+      // Redirect to playlists page
+      router.push("/profile");
+
+    } catch (error) {
+      toast.error('Failed to create playlist');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <ProtectedRoute>
+  
       <div className="flex h-screen bg-black text-white overflow-hidden">
         <Sidebar />
+
 
         <main className="flex-1 overflow-y-auto pb-24 pt-4 px-6">
           <div className="max-w-6xl mx-auto">
@@ -283,9 +309,10 @@ const CreatePlaylist = () => {
                         </Button>
                         <Button
                           type="submit"
-                          className="bg-green-400 hover:bg-green-700 font-semibold  cursor-pointer text-white"
+                          disabled={isSubmitting}
+                          className="bg-green-400 hover:bg-green-700 font-semibold cursor-pointer text-white disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Create Playlist
+                          {isSubmitting ? 'Creating...' : 'Create Playlist'}
                         </Button>
                       </div>
                     </form>
@@ -302,56 +329,90 @@ const CreatePlaylist = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="relative mb-6">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-spotify-offwhite" />
+                    <form onSubmit={handleSearch} className="relative mb-6">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <Input
                         placeholder="Search for songs to add"
                         className="pl-10 bg-spotify-dark border-spotify-dark text-white placeholder-spotify-offwhite"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
-                    </div>
+                    </form>
 
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {filteredSongs.map((song) => {
-                        const isSelected = selectedSongs.find(
-                          (s) => s.id === song.id
-                        );
-                        return (
-                          <div
-                            key={song.id}
-                            className="flex items-center gap-3 p-3 bg-spotify-dark rounded-lg hover:bg-opacity-80 transition-colors"
-                          >
-                            <Checkbox
-                              checked={!!isSelected}
-                              onCheckedChange={() => toggleSongSelection(song)}
-                              className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                            />
-                            <div className="h-10 w-10 bg-spotify-black rounded flex-shrink-0">
-                              <Music className="h-6 w-6 m-2 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-white truncate">
-                                {song.title}
-                              </p>
-                              <p className="text-sm text-gray-400 truncate">
-                                {song.artist} • {song.album}
-                              </p>
-                            </div>
-                            <span className="text-gray-400 text-sm">
-                              {song.duration}
-                            </span>
-                          </div>
-                        );
-                      })}
+                    {/* Error Display */}
+                    {error && (
+                      <div className="mb-6 p-4 bg-red-900/20 border border-red-500 rounded-lg">
+                        <p className="text-red-400">Error: {error}</p>
+                      </div>
+                    )}
 
-                      {filteredSongs.length === 0 && (
-                        <div className="py-8 text-center">
-                          <p className="text-red-500">
-                            No songs found matching your search
+                    {/* Loading State */}
+                    {loading && (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-pulse">
+                          <Music className="h-8 w-8 text-spotify-green mx-auto" />
+                          <p className="mt-2 text-sm text-spotify-offwhite">
+                            Searching...
                           </p>
                         </div>
-                      )}
+                      </div>
+                    )}
+
+                    {/* Search Results */}
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {searchResults.tracks && searchResults.tracks.length > 0 ? (
+                        searchResults.tracks.map((track) => {
+                          const isSelected = selectedSongs.find(
+                            (s) => s.id === track.id
+                          );
+                          return (
+                            <div
+                              key={track.id}
+                              className="flex items-center gap-3 p-3 bg-spotify-dark rounded-lg hover:bg-opacity-80 transition-colors"
+                            >
+                              <Checkbox
+                                checked={!!isSelected}
+                                onCheckedChange={() => toggleSongSelection(track)}
+                                className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                              />
+                              <div className="h-10 w-10 bg-spotify-black rounded flex-shrink-0 overflow-hidden">
+                                {track.album?.images?.[0] ? (
+                                  <img 
+                                    src={track.album.images[0].url} 
+                                    alt={track.album.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Music className="h-6 w-6 m-2 text-white" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-white truncate">
+                                  {track.name}
+                                </p>
+                                <p className="text-sm text-gray-400 truncate">
+                                  {track.artists?.map(artist => artist.name).join(', ')} • {track.album?.name || 'Unknown Album'}
+                                </p>
+                              </div>
+                              <span className="text-gray-400 text-sm">
+                                {track.duration_ms ? formatDuration(track.duration_ms) : 'Unknown'}
+                              </span>
+                            </div>
+                          );
+                        })
+                      ) : searchQuery && !loading ? (
+                        <div className="py-8 text-center">
+                          <p className="text-spotify-offwhite">
+                            No tracks found. Try searching for a different song.
+                          </p>
+                        </div>
+                      ) : !searchQuery ? (
+                        <div className="py-8 text-center">
+                          <p className="text-gray-400">
+                            Search for songs for your playlist
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

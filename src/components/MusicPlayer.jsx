@@ -16,12 +16,13 @@ import {
   Shuffle,
   ChevronUp,
   ChevronDown,
+  Music,
 } from "lucide-react";
 
-const MusicPlayer = ({ inGroup = false, isAdmin = false }) => {
+const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(230); // seconds
+  const [duration, setDuration] = useState(0); 
   const [volume, setVolume] = useState(70);
   const [liked, setLiked] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -30,6 +31,18 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false }) => {
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  // Update duration when track changes
+  useEffect(() => {
+    setDuration(0);
+    if (track?.duration_ms) {
+      setDuration(Math.floor(track.duration_ms / 1000)); // Convert ms to seconds
+    }
+
+    if(track?.duration){
+      setDuration(Math.floor(track.duration)/1000)
+    }
+  }, [track]);
 
   useEffect(() => {
     let interval;
@@ -53,6 +66,53 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false }) => {
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
+  // Helper function to get track info safely
+  const getTrackInfo = () => {
+    if (!track) {
+      return {
+        name: inGroup ? "No track selected" : "No track selected",
+        artist: inGroup ? "Select a track from the queue" : "Select a track to play",
+        imageUrl: null,
+      };
+    }
+
+    // Handle queue song structure (from group sessions)
+    if (track.title && track.artist) {
+      return {
+        name: track.title,
+        artist: track.artist,
+        imageUrl: track.albumArt || null,
+      };
+    }
+
+    // Handle Spotify API track structure
+    if (track.album?.images) {
+      return {
+        name: track.name || "Unknown Track",
+        artist: track.artists?.map(artist => artist.name).join(', ') || "Unknown Artist",
+        imageUrl: track.album.images[0]?.url || null,
+      };
+    }
+
+    // Handle legacy track structure
+    if (track.image && Array.isArray(track.image)) {
+      return {
+        name: track.name || "Unknown Track",
+        artist: track.artist || "Unknown Artist",
+        imageUrl: track.image[0] || null,
+      };
+    }
+
+    // Fallback
+    return {
+      name: track.name || track.title || "Unknown Track",
+      artist: track.artist || "Unknown Artist",
+      imageUrl: track.albumArt || null,
+    };
+  };
+
+  const trackInfo = getTrackInfo();
+
   if (!hasMounted) return null;
 
   return (
@@ -63,7 +123,7 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false }) => {
           <div className="flex items-center gap-3 text-white">
             <Play className="h-4 w-4" />
             <span className="text-sm font-medium truncate">
-              Never Gonna Give You Up - Rick Astley
+              {trackInfo.name}
             </span>
           </div>
           <Button
@@ -80,17 +140,23 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false }) => {
           {/* Song Info */}
           <div className="flex items-center w-full md:w-1/3 gap-4">
             <div className="h-14 w-14 bg-gray-500 rounded-md overflow-hidden flex-shrink-0">
-              <img
-                src="https://via.placeholder.com/56?text=Cover"
-                alt="Album cover"
-                className="object-cover h-full w-full"
-              />
+              {trackInfo.imageUrl ? (
+                <img
+                  src={trackInfo.imageUrl}
+                  alt="Album cover"
+                  className="object-cover h-full w-full"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <Music className="h-6 w-6 text-gray-400" />
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-white truncate">
-                Never Gonna Give You Up
+                {trackInfo.name}
               </p>
-              <p className="text-sm text-gray-400 truncate">Rick Astley</p>
+              <p className="text-sm text-gray-400 truncate">{trackInfo.artist}</p>
             </div>
             <Button
               variant="ghost"
@@ -116,6 +182,7 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false }) => {
               <Button
                 onClick={() => setIsPlaying(!isPlaying)}
                 className="rounded-full bg-white hover:text-gray-400 text-black h-10 w-10 flex items-center justify-center"
+                disabled={!track}
               >
                 {isPlaying ? (
                   <Pause className="h-5 w-5" />

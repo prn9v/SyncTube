@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const GroupSessionSchema = new Schema({
+  groupName:       { type: String, required: true },
   inviteCode: { type: String, required: true, unique: true },
   members:    [{ type: Schema.Types.ObjectId, ref: 'User' }],
   admin:      { type: Schema.Types.ObjectId, ref: 'User', required: true },

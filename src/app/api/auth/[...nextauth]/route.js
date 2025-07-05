@@ -36,6 +36,9 @@ export async function getUserByEmail(email) {
       username: user.username,
       password: user.password,
       image: user.image,
+      bio: user.bio,
+      location: user.location,
+      createdAt: user.createdAt,
     }
   } catch (error) {
     console.error('Error getting user by email:', error)
@@ -58,6 +61,10 @@ export const authOptions = {
           image: profile.picture,
           firstName: profile.given_name,
           lastName: profile.family_name,
+          playlists: profile.playlists,
+          groups: profile.groups,
+          likedSongs: profile.likedSongs,
+          bio: profile.bio
         }
       },
     }),
@@ -97,6 +104,12 @@ export const authOptions = {
             lastName: user.lastName,
             username: user.username,
             image: user.image,
+            playlists: user.playlists,
+            groups: user.groups,
+            likedSongs: user.likedSongs,
+            bio: user.bio,
+            location: user.location,
+            createdAt: user.createdAt
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -114,41 +127,54 @@ export const authOptions = {
   },
   callbacks: {
     async jwt({ token, user, account, profile }) {
-      // Initial sign in
       if (user) {
-        token.id = user.id
-        token.firstName = user.firstName
-        token.lastName = user.lastName
-        token.username = user.username
+        token.id = user.id;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.username = user.username;
+        token.bio = user.bio;
+        token.location = user.location;
+        token.createdAt = user.createdAt;
       }
-      
-      // Handle Google OAuth profile data
       if (account?.provider === 'google' && profile) {
-        token.firstName = profile.given_name
-        token.lastName = profile.family_name
+        token.firstName = profile.given_name;
+        token.lastName = profile.family_name;
       }
-      
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id
-        session.user.firstName = token.firstName
-        session.user.lastName = token.lastName
-        session.user.username = token.username
+        session.user.id = token.id;
+        session.user.firstName = token.firstName;
+        session.user.lastName = token.lastName;
+        session.user.username = token.username;
+        session.user.bio = token.bio || "";
+        session.user.location = token.location || "";
+        session.user.createdAt = token.createdAt;
+
+        // Fetch the full user from the database
+        const client = await clientPromise;
+        const db = client.db();
+        const dbUser = await db.collection('users').findOne({ 
+          email: { $regex: new RegExp(`^${session.user.email}$`, 'i') }
+        });
+
+        // Add playlists and groups to the session
+        if (dbUser) {
+          session.user.playlists = dbUser.playlists || [];
+          session.user.groups = dbUser.groups || [];
+        }
       }
-      return session
+      return session;
     },
     async signIn({ user, account, profile }) {
       // Allow sign in
-      return true
+      return true;
     },
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     }
   },
   pages: {

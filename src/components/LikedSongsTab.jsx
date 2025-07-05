@@ -71,9 +71,9 @@ const LikedSongsTab = ({ setActiveTab }) => {
             <Button
               variant="outline"
               className="mt-4 bg-black border-white text-white hover:bg-green-600 hover:text-white cursor-pointer"
-              onClick={() => router.push('/library')}
+              onClick={() => router.push('/search')}
             >
-              Browse your library
+              Search For Songs
             </Button>
           </div>
         )}

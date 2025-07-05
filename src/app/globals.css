@@ -120,3 +120,47 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Spotify-specific styles */
+@layer utilities {
+  .bg-spotify-green {
+    background-color: #1DB954;
+  }
+  
+  .text-spotify-green {
+    color: #1DB954;
+  }
+  
+  .border-spotify-green {
+    border-color: #1DB954;
+  }
+  
+  .bg-spotify-light {
+    background-color: #282828;
+  }
+  
+  .bg-spotify-dark {
+    background-color: #181818;
+  }
+  
+  .bg-spotify-black {
+    background-color: #000000;
+  }
+  
+  .text-spotify-offwhite {
+    color: #B3B3B3;
+  }
+  
+  .animate-pulse-green {
+    animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-green {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
