@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Music,
 } from "lucide-react";
+import { useSession } from 'next-auth/react';
 
 const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -27,6 +28,9 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
   const [liked, setLiked] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const { data: session } = useSession();
+
 
   useEffect(() => {
     setHasMounted(true);
@@ -39,10 +43,109 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
       setDuration(Math.floor(track.duration_ms / 1000)); // Convert ms to seconds
     }
 
-    if(track?.duration){
-      setDuration(Math.floor(track.duration)/1000)
+    if(track.duration){
+      setDuration(Math.floor(track.duration))
     }
   }, [track]);
+
+  // Check if current track is liked when track changes
+  useEffect(() => {
+    if (track && session) {
+      checkIfLiked();
+    } else {
+      setLiked(false);
+    }
+  }, [track, session]);
+
+  const checkIfLiked = async () => {
+    if (!track || !session) return;
+
+    try {
+      const songData = getSongDataForAPI();
+      const response = await fetch('/api/user/check-liked', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ songData, userId: session.user.id }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLiked(data.liked);
+      }
+    } catch (error) {
+      console.error('Error checking if song is liked:', error);
+    }
+  };
+
+  const getSongDataForAPI = () => {
+    if (!track) return null;
+
+    // Handle different track structures
+    if (track.title && track.artist) {
+      return {
+        title: track.title,
+        artist: track.artist,
+        album: track.album || null,
+        duration: track.duration || null,
+        albumArt: track.albumArt || null,
+        spotifyId: track.spotifyId || null,
+      };
+    }
+
+    if (track.name && track.artists) {
+      return {
+        title: track.name,
+        artist: track.artists.map(artist => artist.name).join(', '),
+        album: track.album?.name || null,
+        duration: track.duration_ms ? Math.floor(track.duration_ms / 1000) : null,
+        albumArt: track.album?.images?.[0]?.url || null,
+        spotifyId: track.id || null,
+      };
+    }
+
+    return {
+      title: track.name || track.title || 'Unknown Track',
+      artist: track.artist || 'Unknown Artist',
+      album: track.album || null,
+      duration: track.duration || null,
+      albumArt: track.albumArt || null,
+      spotifyId: track.spotifyId || null,
+    };
+  };
+
+  const handleLikeToggle = async () => {
+    if (!track || !session || isLiking) return;
+    console.log("track: ",track);
+    console.log("session: ",session);
+    console.log("isLiking: ",isLiking);
+
+    setIsLiking(true);
+    try {
+      const songData = getSongDataForAPI();
+      console.log("song data: ",songData);
+      const endpoint = liked ? '/api/user/unlike-song' : '/api/user/like-song';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ songData , userId: session.user.id }),
+      });
+
+      if (response.ok) {
+        setLiked(!liked);
+      } else {
+        console.error('Failed to toggle like status');
+      }
+    } catch (error) {
+      console.error('Error toggling like status:', error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
 
   useEffect(() => {
     let interval;
@@ -158,16 +261,24 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
               </p>
               <p className="text-sm text-gray-400 truncate">{trackInfo.artist}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLiked(!liked)}
-              className="text-gray-400"
-            >
-              <Heart
-                className={`h-5 w-5 ${liked ? "fill-green-500 text-green-500" : ""}`}
-              />
-            </Button>
+            {/* Only show like button if track is selected and user is logged in */}
+            {track && session && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLikeToggle}
+                disabled={isLiking}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <Heart
+                  className={`h-5 w-5 transition-all duration-200 ${
+                    liked 
+                      ? "fill-red-500 text-red-500 scale-110" 
+                      : "hover:scale-110"
+                  }`}
+                />
+              </Button>
+            )}
           </div>
 
           {/* Playback Controls */}

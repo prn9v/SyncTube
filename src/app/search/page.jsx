@@ -323,10 +323,10 @@ const ArtistsGrid = ({ artists }) => {
                 alt={artist.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+              <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
                 <Button 
                   size="icon" 
-                  className="opacity-0 group-hover:opacity-100 bg-spotify-green hover:bg-opacity-80"
+                  className="opacity-0 group-hover:opacity-100 bg-black hover:bg-opacity-80 cursor-pointer"
                 >
                   <Play className="h-4 w-4" />
                 </Button>
@@ -369,10 +369,10 @@ const PlaylistsGrid = ({ playlists }) => {
                 alt={playlist.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+              <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
                 <Button 
                   size="icon" 
-                  className="opacity-0 group-hover:opacity-100 bg-spotify-green hover:bg-opacity-80"
+                  className="opacity-0 group-hover:opacity-100 bg-black hover:bg-opacity-80 cursor-pointer"
                 >
                   <Play className="h-4 w-4" />
                 </Button>

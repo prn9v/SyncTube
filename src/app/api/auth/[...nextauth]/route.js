@@ -37,6 +37,7 @@ export async function getUserByEmail(email) {
       password: user.password,
       image: user.image,
       bio: user.bio,
+      likedSongs: user.likedSongs,
       location: user.location,
       createdAt: user.createdAt,
     }
@@ -135,6 +136,7 @@ export const authOptions = {
         token.bio = user.bio;
         token.location = user.location;
         token.createdAt = user.createdAt;
+        token.likedSongs = user.likedSongs || [];
       }
       if (account?.provider === 'google' && profile) {
         token.firstName = profile.given_name;
@@ -143,6 +145,9 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
+      console.log('Session callback - token:', token);
+      console.log('Session callback - session before:', session);
+      
       if (token) {
         session.user.id = token.id;
         session.user.firstName = token.firstName;
@@ -152,19 +157,27 @@ export const authOptions = {
         session.user.location = token.location || "";
         session.user.createdAt = token.createdAt;
 
-        // Fetch the full user from the database
-        const client = await clientPromise;
-        const db = client.db();
-        const dbUser = await db.collection('users').findOne({ 
-          email: { $regex: new RegExp(`^${session.user.email}$`, 'i') }
-        });
+        // Fetch the full user from the database to get the correct ObjectId and likedSongs
+        try {
+          const client = await clientPromise;
+          const db = client.db();
+          const dbUser = await db.collection('users').findOne({ 
+            email: { $regex: new RegExp(`^${session.user.email}$`, 'i') }
+          });
 
-        // Add playlists and groups to the session
-        if (dbUser) {
-          session.user.playlists = dbUser.playlists || [];
-          session.user.groups = dbUser.groups || [];
+          // Add playlists, groups, and likedSongs to the session
+          if (dbUser) {
+            session.user.id = dbUser._id.toString(); // Use the actual MongoDB ObjectId
+            session.user.playlists = dbUser.playlists || [];
+            session.user.groups = dbUser.groups || [];
+            session.user.likedSongs = dbUser.likedSongs || [];
+          }
+        } catch (error) {
+          console.error('Error fetching user from database:', error);
         }
       }
+      
+      console.log('Session callback - session after:', session);
       return session;
     },
     async signIn({ user, account, profile }) {

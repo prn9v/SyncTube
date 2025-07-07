@@ -55,6 +55,8 @@ export async function getUserByEmail(email) {
     const db = client.db()
     
     const user = await db.collection('users').findOne({ email: email.toLowerCase() })
+
+    console.log("user is: ",user);
     if (!user) return null
     
     return {

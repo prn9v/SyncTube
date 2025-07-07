@@ -70,7 +70,7 @@ const PlaylistCard = ({
             priority={true}
             unoptimized={true}
           />
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-md flex items-center justify-center">
+          <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-md flex items-center justify-center">
             <Button
               size="icon"
               className="opacity-0 group-hover:opacity-100 transition-opacity bg-green-500 hover:bg-green-600 text-black"
@@ -99,19 +99,7 @@ const PlaylistCard = ({
               Artist
             </span>
           )}
-          {externalUrl && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 p-1 h-auto text-gray-400 hover:text-white"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(externalUrl, '_blank');
-              }}
-            >
-              <ExternalLink className="h-3 w-3" />
-            </Button>
-          )}
+          
         </div>
       </div>
     </Card>
