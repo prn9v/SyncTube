@@ -39,12 +39,13 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
   // Update duration when track changes
   useEffect(() => {
     setDuration(0);
-    if (track?.duration_ms) {
-      setDuration(Math.floor(track.duration_ms / 1000)); // Convert ms to seconds
-    }
-
-    if(track.duration){
-      setDuration(Math.floor(track.duration))
+    if (track) {
+      if (typeof track.duration_ms === 'number' && !isNaN(track.duration_ms)) {
+        setDuration(Math.floor(track.duration_ms / 1000)); // ms to s
+      } else if (typeof track.duration === 'number' && !isNaN(track.duration)) {
+        // If duration is in seconds or ms, guess based on value
+        setDuration(track.duration > 10000 ? Math.floor(track.duration / 1000) : Math.floor(track.duration));
+      }
     }
   }, [track]);
 
