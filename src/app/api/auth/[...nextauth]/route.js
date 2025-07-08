@@ -10,7 +10,6 @@ export async function verifyPassword(password, hashedPassword) {
   try {
     return await bcrypt.compare(password, hashedPassword)
   } catch (error) {
-    console.error('Error verifying password:', error)
     return false
   }
 }
@@ -42,7 +41,6 @@ export async function getUserByEmail(email) {
       createdAt: user.createdAt,
     }
   } catch (error) {
-    console.error('Error getting user by email:', error)
     return null
   }
 }
@@ -113,7 +111,6 @@ export const authOptions = {
             createdAt: user.createdAt
           }
         } catch (error) {
-          console.error('Auth error:', error)
           throw new Error('Authentication failed')
         }
       }
@@ -145,9 +142,6 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      console.log('Session callback - token:', token);
-      console.log('Session callback - session before:', session);
-      
       if (token) {
         session.user.id = token.id;
         session.user.firstName = token.firstName;
@@ -173,11 +167,8 @@ export const authOptions = {
             session.user.likedSongs = dbUser.likedSongs || [];
           }
         } catch (error) {
-          console.error('Error fetching user from database:', error);
         }
       }
-      
-      console.log('Session callback - session after:', session);
       return session;
     },
     async signIn({ user, account, profile }) {
@@ -197,10 +188,8 @@ export const authOptions = {
   },
   events: {
     async signIn({ user, account, profile, isNewUser }) {
-      console.log(`User ${user.email} signed in via ${account.provider}`)
     },
     async signOut({ session, token }) {
-      console.log(`User signed out`)
     },
   },
   debug: process.env.NODE_ENV === 'development',

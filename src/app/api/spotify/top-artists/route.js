@@ -53,7 +53,6 @@ export async function GET() {
     
     // If we couldn't get any artists, return some fallback data
     if (allArtists.length === 0) {
-      console.log('No artists found, using fallback data')
       return NextResponse.json({
         success: true,
         artists: [

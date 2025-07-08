@@ -10,11 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search as SearchIcon, X, Music, Play, ExternalLink } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useSpotifyComprehensiveSearch } from "@/hooks/useSpotify";
+import { useRouter } from "next/navigation";
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTrack, setCurrentTrack] = useState(null);
   const { searchResults, loading, error, searchAll } = useSpotifyComprehensiveSearch();
+  const router = useRouter();
   
 
   const mockCategories = [
@@ -141,10 +144,10 @@ const Search = () => {
                           <p className="text-sm text-spotify-offwhite mt-1">
                             Artist • {searchResults.artists[0].followers.toLocaleString()} followers
                           </p>
-                          {searchResults.artists[0].external_url && (
+                          {searchResults.artists[0] && (
                             <Button 
-                              className="mt-4 bg-spotify-green hover:bg-opacity-80"
-                              onClick={() => window.open(searchResults.artists[0].external_url, '_blank')}
+                              className="mt-4 bg-spotify-green hover:bg-opacity-80 cursor-pointer"
+                              onClick={() => router.push(`/artist/${searchResults.artists[0].id}`)}
                             >
                               <Play className="h-4 w-4 mr-2" />
                               Play
@@ -225,14 +228,7 @@ const Search = () => {
             )}
 
             {loading && (
-              <div className="flex justify-center py-12">
-                <div className="animate-pulse-green">
-                  <Music className="h-12 w-12 text-spotify-green" />
-                  <p className="mt-4 text-sm text-spotify-offwhite">
-                    Searching...
-                  </p>
-                </div>
-              </div>
+              <LoadingSpinner />
             )}
           </main>
           <MusicPlayer track={currentTrack} />
@@ -300,6 +296,7 @@ const TracksTable = ({ results, setCurrentTrack }) => {
 };
 
 const ArtistsGrid = ({ artists }) => {
+  const router = useRouter();
   // Helper function to get the best image URL
   const getImageUrl = (images, fallback = "https://via.placeholder.com/200?text=No+Image") => {
     if (!images || images.length === 0) return fallback;
@@ -315,7 +312,7 @@ const ArtistsGrid = ({ artists }) => {
           <div
             key={artist.id}
             className="group cursor-pointer"
-            onClick={() => artist.external_url && window.open(artist.external_url, '_blank')}
+            onClick={() => router.push(`/artist/${artist.id}`)}
           >
             <div className="relative overflow-hidden rounded-lg aspect-square bg-spotify-light group-hover:bg-spotify-dark transition-colors">
               <img
@@ -346,6 +343,7 @@ const ArtistsGrid = ({ artists }) => {
 };
 
 const PlaylistsGrid = ({ playlists }) => {
+  const router = useRouter();
   // Helper function to get the best image URL
   const getImageUrl = (images, fallback = "https://via.placeholder.com/200?text=No+Image") => {
     if (!images || images.length === 0) return fallback;
@@ -361,7 +359,7 @@ const PlaylistsGrid = ({ playlists }) => {
           <div
             key={playlist.id}
             className="group cursor-pointer"
-            onClick={() => playlist.external_url && window.open(playlist.external_url, '_blank')}
+            onClick={() => router.push(`/playlist/${playlist.id}`)}
           >
             <div className="relative overflow-hidden rounded-lg aspect-square bg-spotify-light group-hover:bg-spotify-dark transition-colors">
               <img

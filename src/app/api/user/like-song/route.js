@@ -6,9 +6,6 @@ export async function POST(req) {
   try {
     const { songData, userId } = await req.json();
 
-    console.log("song data: ", songData);
-    console.log("userid: ", userId);
-
     if (!songData) {
       return NextResponse.json(
         { error: 'Song data is required' },
@@ -60,7 +57,6 @@ export async function POST(req) {
 
     // Add song to user's liked songs if not already liked
     const user = await db.collection('users').findOne({ _id: userObjectId });
-    console.log("user: ", user);
 
     if (!user) {
       return NextResponse.json(

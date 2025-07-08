@@ -55,16 +55,20 @@ const GroupSession = () => {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="flex h-screen bg-black text-white overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto pb-24 pt-4 px-6">
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                <p className="text-spotify-offwhite">Loading group session...</p>
-              </div>
+        <div className="bg-black min-h-screen flex flex-col">
+          <div className="flex flex-col md:flex-row flex-1 bg-black text-white overflow-hidden">
+            <div className="w-full md:w-64 flex-shrink-0">
+              <Sidebar />
             </div>
-          </main>
+            <main className="flex-1 overflow-y-auto pb-24 pt-4 px-2 sm:px-4 md:px-6">
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                  <p className="text-spotify-offwhite">Loading group session...</p>
+                </div>
+              </div>
+            </main>
+          </div>
         </div>
       </ProtectedRoute>
     );
@@ -73,16 +77,20 @@ const GroupSession = () => {
   if (!group) {
     return (
       <ProtectedRoute>
-        <div className="flex h-screen bg-black text-white overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto pb-24 pt-4 px-6">
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-red-400 text-xl mb-2">Group not found</p>
-                <p className="text-spotify-offwhite">The group you're looking for doesn't exist or you don't have access to it.</p>
-              </div>
+        <div className="bg-black min-h-screen flex flex-col">
+          <div className="flex flex-col md:flex-row flex-1 bg-black text-white overflow-hidden">
+            <div className="w-full md:w-64 flex-shrink-0">
+              <Sidebar />
             </div>
-          </main>
+            <main className="flex-1 overflow-y-auto pb-24 pt-4 px-2 sm:px-4 md:px-6">
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <p className="text-red-400 text-xl mb-2">Group not found</p>
+                  <p className="text-spotify-offwhite">The group you're looking for doesn't exist or you don't have access to it.</p>
+                </div>
+              </div>
+            </main>
+          </div>
         </div>
       </ProtectedRoute>
     );
@@ -90,28 +98,30 @@ const GroupSession = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen bg-black text-white overflow-hidden">
-        <Sidebar />
-
-        <main className="flex-1 overflow-y-auto pb-24 pt-4 px-6">
-          <div className="mb-4 flex items-center gap-4">
-            <span className="text-green-400">Group: {group.groupName}</span>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-              isAdmin 
-                ? 'bg-green-500 text-black' 
-                : 'bg-gray-600 text-white'
-            }`}>
-              {isAdmin ? 'Admin' : 'Member'}
-            </span>
+      <div className="bg-black min-h-screen flex flex-col">
+        <div className="flex flex-col md:flex-row flex-1 bg-black text-white overflow-hidden">
+          <div className="w-full md:w-64 flex-shrink-0">
+            <Sidebar />
           </div>
-          <GroupSessionControl 
-            isAdmin={isAdmin} 
-            groupId={groupId} 
-            currentTrack={currentTrack}
-            setCurrentTrack={setCurrentTrack}
-          />
-        </main>
-
+          <main className="flex-1 overflow-y-auto pb-24 pt-4 px-2 sm:px-4 md:px-6">
+            <div className="mb-4 flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <span className="text-green-400">Group: {group.groupName}</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                isAdmin 
+                  ? 'bg-green-500 text-black' 
+                  : 'bg-gray-600 text-white'
+              }`}>
+                {isAdmin ? 'Admin' : 'Member'}
+              </span>
+            </div>
+            <GroupSessionControl 
+              isAdmin={isAdmin} 
+              groupId={groupId} 
+              currentTrack={currentTrack}
+              setCurrentTrack={setCurrentTrack}
+            />
+          </main>
+        </div>
         <MusicPlayer 
           inGroup={true} 
           isAdmin={isAdmin} 

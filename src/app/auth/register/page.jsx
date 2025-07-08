@@ -74,21 +74,21 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-black to-black p-4">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-black to-black px-2 sm:px-4 py-6">
       <Link href="/" className="flex items-center gap-2 mb-8">
         <Music2 className="h-8 w-8 text-green-500" />
         <span className="text-2xl font-bold text-white">SyncTune</span>
       </Link>
 
-      <Card className="w-full max-w-md bg-black text-white">
+      <Card className="w-full max-w-xs sm:max-w-sm md:max-w-md bg-black text-white">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
-          <CardDescription className="text-center">Enter your information to create a SyncTune account</CardDescription>
+          <CardTitle className="text-xl sm:text-2xl font-bold text-center">Create an account</CardTitle>
+          <CardDescription className="text-center text-gray-400 text-sm sm:text-base">Enter your information to create a SyncTune account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && <div className="text-red-500 text-sm text-center">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First name</Label>
                 <Input id="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} />
@@ -142,7 +142,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button onClick={() => signIn("google")}
               variant="outline"
               className="bg-black cursor-pointer"

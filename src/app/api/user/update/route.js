@@ -68,8 +68,6 @@ export async function PUT(req) {
       { $set: updateFields }
     );
 
-    console.log("result: ",result);
-
     if (result.matchedCount === 0) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -85,7 +83,6 @@ export async function PUT(req) {
     });
 
   } catch (error) {
-    console.error('Error updating user profile:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

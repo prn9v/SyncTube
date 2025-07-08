@@ -275,4 +275,8 @@ class SpotifyAPI {
 
 // Create singleton instance
 const spotifyAPI = new SpotifyAPI();
-export default spotifyAPI; 
+export default spotifyAPI;
+
+export async function getSpotifyAccessToken() {
+  return await spotifyAPI.getAccessToken();
+} 

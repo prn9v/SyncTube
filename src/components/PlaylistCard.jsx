@@ -8,39 +8,48 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, ExternalLink } from "lucide-react";
 
 const PlaylistCard = ({
+  id,
   title,
   description = "",
   imageUrl,
   type = "playlist",
   duration,
   previewUrl,
-  externalUrl,
-  uri
+  uri,
+  onTrackSelect
 }) => {
   const [isHovering, setIsHovering] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
+  console.log("id: ",id);
+  console.log("type: ",type);
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
-  const handlePlay = () => {
-    if (previewUrl) {
-      // Play preview audio
-      const audio = new Audio(previewUrl);
-      audio.play();
-    } else if (externalUrl) {
-      // Open in Spotify
-      window.open(externalUrl, '_blank');
-    }
-  };
 
   const handleClick = () => {
-    const path = `/${type}/${title.replace(/\s+/g, "-").toLowerCase()}`;
-    router.push(path);
+    if (type === "artist" && id) {
+      router.push(`/artist/${id}`);
+      return;
+    }
+    if (onTrackSelect) {
+      // Create track object with available data
+      const trackData = {
+        title: title,
+        artist: description || "Unknown Artist",
+        album: type === "artist" ? "Artist" : "Unknown Album",
+        duration: duration,
+        albumArt: imageUrl,
+        spotifyId: uri,
+        previewUrl: previewUrl,
+        type: type
+      };
+      onTrackSelect(trackData);
+    }
   };
 
   const handleImageError = () => {
@@ -73,10 +82,10 @@ const PlaylistCard = ({
           <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-md flex items-center justify-center">
             <Button
               size="icon"
-              className="opacity-0 group-hover:opacity-100 transition-opacity bg-green-500 hover:bg-green-600 text-black"
+              className="opacity-0 group-hover:opacity-100 transition-opacity bg-green-500 hover:bg-green-600 text-black cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
-                handlePlay();
+                handleClick();
               }}
             >
               <Play className="h-4 w-4" />

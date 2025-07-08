@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, Music, Clock, Loader2, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react'
 import { useRouter } from "next/navigation";
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const LikedSongsTab = ({ setActiveTab, refreshTrigger, onTrackSelect }) => {
   const router = useRouter();
@@ -126,14 +127,7 @@ const LikedSongsTab = ({ setActiveTab, refreshTrigger, onTrackSelect }) => {
   };
 
   if (status === 'loading' || loading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading liked songs...</span>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!session || !session.user) {

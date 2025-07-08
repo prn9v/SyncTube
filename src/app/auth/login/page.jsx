@@ -56,16 +56,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-black to-black p-4">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-black to-black px-2 sm:px-4 py-6">
       <Link href="/" className="flex items-center gap-2 mb-8">
         <Music2 className="h-8 w-8 text-green-500" />
         <span className="text-2xl font-bold text-white">SyncTune</span>
       </Link>
 
-      <Card className="w-full max-w-md text-white bg-black">
+      <Card className="w-full max-w-xs sm:max-w-sm md:max-w-md text-white bg-black">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign in to SyncTune</CardTitle>
-          <CardDescription className="text-center text-gray-400">
+          <CardTitle className="text-xl sm:text-2xl font-bold text-center">Sign in to SyncTune</CardTitle>
+          <CardDescription className="text-center text-gray-400 text-sm sm:text-base">
             Enter your email and password to access your account
           </CardDescription>
         </CardHeader>
@@ -120,7 +120,7 @@ export default function LoginPage() {
               <span className="text-white bg-black px-2 ">Or continue with</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button
               type="button"
               variant="text-white bg-black"

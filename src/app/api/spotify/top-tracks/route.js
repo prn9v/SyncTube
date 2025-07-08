@@ -63,7 +63,6 @@ export async function GET() {
     
     // If we couldn't get any tracks, return some fallback data
     if (allTracks.length === 0) {
-      console.log('No tracks found, using fallback data')
       return NextResponse.json({
         success: true,
         tracks: [
