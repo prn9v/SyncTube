@@ -209,7 +209,7 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
   if (!hasMounted) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-gray-800 to-black border-t border-gray-700 transition-all duration-300">
+    <div className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-r from-gray-800 to-black border-t border-gray-700 transition-all duration-300">
       {minimized ? (
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3 text-white">
@@ -265,7 +265,7 @@ const MusicPlayer = ({ inGroup = false, isAdmin = false, track }) => {
 
           {/* Playback Controls */}
           <div className="flex flex-col items-center justify-center w-full sm:w-auto flex-grow sm:flex-grow-0">
-            <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+            <div className="flex items-center gap-4 sm:gap-10 md:gap-20">
               <Button variant="ghost" size="icon" className="text-gray-400 hidden sm:inline-flex">
                 <Shuffle className="h-5 w-5" />
               </Button>

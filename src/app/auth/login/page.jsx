@@ -1,6 +1,6 @@
 'use client'
 import Link from "next/link"
-import { Music2 } from "lucide-react"
+import { Music2, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,13 +11,13 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 
 export default function LoginPage() {
-
   const [credentials, setCredentials] = useState({
     email: '',
     password: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   const handleChange = (e) => {
@@ -42,7 +42,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError(result.error)
       } else {
-        router.push('/dashboard') // Redirect to dashboard or home page
+        router.push('/dashboard')
       }
     } catch (error) {
       setError('An error occurred. Please try again.')
@@ -94,15 +94,29 @@ export default function LoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                value={credentials.password}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={credentials.password}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-white focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
             <Button
               className="w-full bg-green-500 text-white cursor-pointer"
@@ -124,7 +138,7 @@ export default function LoginPage() {
             <Button
               type="button"
               variant="text-white bg-black"
-              className=" border border-gray-500 cursor-pointer"
+              className="border border-gray-500 cursor-pointer"
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
@@ -151,7 +165,7 @@ export default function LoginPage() {
             <Button
               type="button"
               variant="text-white bg-black"
-              className=" border border-gray-500 cursor-pointer"
+              className="border border-gray-500 cursor-pointer"
               disabled={loading}
             >
               <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
