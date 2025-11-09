@@ -2,6 +2,7 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 function AuthErrorContent() {
   const searchParams = useSearchParams()
@@ -39,9 +40,7 @@ export default function AuthError() {
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Loading...
-          </h2>
+          <LoadingSpinner />
         </div>
       </div>
     }>

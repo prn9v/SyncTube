@@ -1,16 +1,23 @@
 "use client";
 
-import Link from "next/link"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Music2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { signIn } from "next-auth/react"
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Music2, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { signIn } from "next-auth/react";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -20,17 +27,19 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    terms: false
+    terms: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
   const handleChange = (e) => {
     const { id, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [id]: type === "checkbox" ? checked : value
+      [id]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -39,12 +48,12 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
-    // Basic validation
     if (!formData.terms) {
       setError("You must agree to the Terms of Service and Privacy Policy.");
       setLoading(false);
       return;
     }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       setLoading(false);
@@ -52,20 +61,16 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Something went wrong");
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong');
-      }
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (error) {
       setError(error.message);
     } finally {
@@ -82,40 +87,119 @@ export default function RegisterPage() {
 
       <Card className="w-full max-w-xs sm:max-w-sm md:max-w-md bg-black text-white">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-xl sm:text-2xl font-bold text-center">Create an account</CardTitle>
-          <CardDescription className="text-center text-gray-400 text-sm sm:text-base">Enter your information to create a SyncTune account</CardDescription>
+          <CardTitle className="text-xl sm:text-2xl font-bold text-center">
+            Create an account
+          </CardTitle>
+          <CardDescription className="text-center text-gray-400 text-sm sm:text-base">
+            Enter your information to create a SyncTune account
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First name</Label>
-                <Input id="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} />
+                <Input
+                  id="firstName"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last name</Label> 
-                <Input id="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} />
+                <Label htmlFor="lastName">Last name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                />
               </div>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" placeholder="johndoe" value={formData.username} onChange={handleChange} />
+              <Input
+                id="username"
+                placeholder="johndoe"
+                value={formData.username}
+                onChange={handleChange}
+              />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" placeholder="name@example.com" type="email" value={formData.email} onChange={handleChange} />
+              <Input
+                id="email"
+                placeholder="name@example.com"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+              />
             </div>
+
+            {/* Password Field */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={formData.password} onChange={handleChange} />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-white focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Confirm Password Field */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-white focus:outline-none"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Terms Checkbox */}
             <div className="flex items-center space-x-2">
-              <Checkbox id="terms" className="text-white cursor-pointer border border-green-400" checked={formData.terms} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, terms: !!checked }))} />
+              <Checkbox
+                id="terms"
+                className="text-white cursor-pointer border border-green-400"
+                checked={formData.terms}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, terms: !!checked }))
+                }
+              />
               <label
                 htmlFor="terms"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -130,20 +214,33 @@ export default function RegisterPage() {
                 </Link>
               </label>
             </div>
-            <Button type="submit" className="w-full bg-green-500 cursor-pointer" disabled={loading}>{loading ? "Creating..." : "Create Account"}</Button>
+
+            {/* Submit Button — disabled until terms accepted */}
+            <Button
+              type="submit"
+              className={`w-full bg-green-500 cursor-pointer transition-all ${
+                !formData.terms ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={loading || !formData.terms}
+            >
+              {loading ? "Creating..." : "Create Account"}
+            </Button>
           </form>
 
+          {/* Divider */}
           <div className="relative mt-6">
             <div className="absolute inset-0 flex items-center">
               <Separator className="w-full" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-black text-gray-400 px-2 ">Or continue with</span>
+              <span className="bg-black text-gray-400 px-2">Or continue with</span>
             </div>
           </div>
 
+          {/* Social Auth Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Button onClick={() => signIn("google")}
+            <Button
+              onClick={() => signIn("google")}
               variant="outline"
               className="bg-black cursor-pointer"
               type="button"
@@ -168,6 +265,7 @@ export default function RegisterPage() {
               </svg>
               Google
             </Button>
+
             <Button variant="outline" className="bg-black cursor-pointer" type="button">
               <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
@@ -176,6 +274,7 @@ export default function RegisterPage() {
             </Button>
           </div>
         </CardContent>
+
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
             Already have an account?{" "}
@@ -186,5 +285,5 @@ export default function RegisterPage() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }

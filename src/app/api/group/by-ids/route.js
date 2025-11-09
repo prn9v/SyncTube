@@ -4,13 +4,33 @@ import { ObjectId } from 'mongodb';
 
 export async function POST(req) {
   try {
-    const { ids } = await req.json();
+    // Check if request has a body
+    const text = await req.text();
+    if (!text) {
+      return NextResponse.json({ 
+        error: "Empty request body" 
+      }, { status: 400 });
+    }
+
+    // Parse JSON
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (parseError) {
+      return NextResponse.json({ 
+        error: "Invalid JSON in request body" 
+      }, { status: 400 });
+    }
+
+    const { ids } = body;
     
     // Validate input
     if (!Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json({ 
-        error: "Invalid IDs: expected non-empty array" 
-      }, { status: 400 });
+        groups: [],
+        total: 0,
+        message: "No group IDs provided"
+      }, { status: 200 });
     }
 
     // Validate ObjectId format
@@ -25,24 +45,21 @@ export async function POST(req) {
 
     if (validIds.length === 0) {
       return NextResponse.json({ 
-        error: "No valid ObjectIds provided" 
-      }, { status: 400 });
+        groups: [],
+        total: 0,
+        message: "No valid ObjectIds provided"
+      }, { status: 200 });
     }
 
     // Connect to database
     const client = await clientPromise;
     const db = client.db();
     
-    // Fetch playlists
+    // Fetch groups
     const groups = await db
       .collection("group")
       .find({ _id: { $in: validIds } })
       .toArray();
-
-    if(groups == []){
-      
-    }
-
 
     return NextResponse.json({ 
       groups: groups || [],

@@ -53,6 +53,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import Image from "next/image";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
@@ -195,23 +196,6 @@ export default function ProfilePage() {
     }
   }, [session]);
 
-  // Show first 5 songs from the first playlist as recent activity
-  const recentActivity =
-    session?.user?.playlists &&
-    Array.isArray(session.user.playlists) &&
-    session.user.playlists[0]?.songs &&
-    Array.isArray(session.user.playlists[0].songs)
-      ? session.user.playlists[0].songs.slice(0, 5).map((song, idx) => ({
-          id: idx + 1,
-          type: "song",
-          title: `Played '${song.title || "Unknown Title"}' by ${
-            song.artist || "Unknown Artist"
-          }`,
-          time: "Recently",
-          icon: Music,
-        }))
-      : [];
-
   // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
@@ -235,7 +219,6 @@ export default function ProfilePage() {
   // Calculate parallax and fade effects
   const parallaxOffset = scrollY * 0.5;
   const headerOpacity = Math.max(0, 1 - scrollY / 200);
-  const contentTransform = `translateY(${Math.max(0, scrollY * 0.1)}px)`;
 
   // Handle profile update
   const handleProfileUpdate = async (e) => {
@@ -285,6 +268,8 @@ export default function ProfilePage() {
   if (typeof loading !== "undefined" && loading) {
     return <LoadingSpinner />;
   }
+
+  console.log("user: ", user);
 
   return (
     <ProtectedRoute>
@@ -387,7 +372,7 @@ export default function ProfilePage() {
                         )}
                       </div>
                       <p className="text-muted-foreground mb-2">
-                        @{user.username}
+                        {user.username}
                       </p>
                       <p className="text-sm mb-3 max-w-2xl text-gray-200">
                         {user.bio}
@@ -399,7 +384,12 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Joined {user.joinDate}
+                          Joined{" "}
+                          {user.joinDate && user.joinDate !== "Unknown"
+                            ? user.joinDate
+                            : user.createdAt && user.createdAt !== "Unknown"
+                            ? user.createdAt
+                            : "28-10-2025"}
                         </div>
                       </div>
                     </div>
@@ -577,15 +567,20 @@ export default function ProfilePage() {
                             {userPlaylists.map((playlist, index) => (
                               <Card
                                 key={playlist._id}
-                                className="bg-black hover:bg-gray-900 transition-all duration-300 border-0 overflow-hidden group hover:scale-105"
+                                onClick={() =>
+                                  router.push(`/playlist/${playlist._id}`)
+                                }
+                                className="bg-black hover:bg-gray-900 transition-all duration-300 border-0 cursor-pointer overflow-hidden group hover:scale-105"
                                 style={{ animationDelay: `${index * 0.1}s` }}
                               >
                                 <CardContent className="p-3 sm:p-4">
                                   <div className="relative aspect-square mb-3 rounded-md overflow-hidden">
-                                    <img
+                                    <Image
                                       src={
                                         playlist.coverUrl || "/placeholder.svg"
                                       }
+                                      width={300}
+                                      height={400}
                                       alt={playlist.playlistName}
                                       className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
                                     />
@@ -710,155 +705,171 @@ export default function ProfilePage() {
                       <div className="max-h-96 sm:max-h-[28rem] lg:max-h-[32rem] overflow-y-auto scrollbar-thin scrollbar-thumb-green-500 scrollbar-track-gray-800">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                           {spotifyPlaylists.length > 0 ? (
-                            spotifyPlaylists.map((playlist, index) => (
-                              <Card
-                                key={playlist.id}
-                                className="bg-black hover:bg-gray-900 transition-all duration-300 border-0 overflow-hidden group text-white hover:scale-105"
-                                style={{ animationDelay: `${index * 0.1}s` }}
-                              >
-                                {/* Mobile Layout - Stacked */}
-                                <div className="flex flex-col sm:hidden">
-                                  <div className="relative aspect-square">
-                                    <img
-                                      src={
-                                        playlist.images?.[0]?.url ||
-                                        "/placeholder.svg"
-                                      }
-                                      alt={playlist.name}
-                                      className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-                                      <Button
-                                        size="icon"
-                                        className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 hover:scale-110 transition-transform cursor-pointer"
-                                        onClick={() =>
-                                          window.open(
-                                            playlist.external_urls?.spotify,
-                                            "_blank"
-                                          )
-                                        }
-                                      >
-                                        <Play className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <CardContent className="p-3">
-                                    <h3 className="text-sm font-bold text-white truncate mb-1">
-                                      {playlist.name}
-                                    </h3>
-                                    <p className="text-xs text-gray-300 line-clamp-2 mb-2">
-                                      {playlist.description ||
-                                        "No description available"}
-                                    </p>
-                                    <div className="flex flex-col gap-1 text-xs text-gray-400">
-                                      <span className="truncate">
-                                        By{" "}
-                                        {playlist.owner?.display_name ||
-                                          "Spotify"}
-                                      </span>
-                                      <span>
-                                        {playlist.tracks?.total || 0} tracks
-                                      </span>
-                                    </div>
-                                  </CardContent>
-                                </div>
+                            spotifyPlaylists.map((playlist, index) => {
+                              console.log("playlist:", playlist); // ✅ valid inside a block body
 
-                                {/* Tablet Layout - Horizontal */}
-                                <div className="hidden sm:flex lg:hidden h-32">
-                                  <div className="flex-shrink-0 w-32 h-32 relative">
-                                    <img
-                                      src={
-                                        playlist.images?.[0]?.url ||
-                                        "/placeholder.svg"
-                                      }
-                                      alt={playlist.name}
-                                      className="object-cover w-full h-full rounded-l-md transition-transform duration-300 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-                                      <Button
-                                        size="icon"
-                                        className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 hover:scale-110 transition-transform cursor-pointer"
-                                        onClick={() =>
-                                          window.open(
-                                            playlist.external_urls?.spotify,
-                                            "_blank"
-                                          )
+                              return (
+                                <Card
+                                  key={playlist.id}
+                                  onClick={() =>
+                                    window.open(
+                                      `https://open.spotify.com/playlist/${playlist.uri?.replace(
+                                        "spotify:playlist:",
+                                        ""
+                                      )}`,
+                                      "_blank" // ✅ opens in a new tab
+                                    )
+                                  }
+                                  className="bg-black hover:bg-gray-900 transition-all duration-300 border-0 overflow-hidden group text-white hover:scale-105 cursor-pointer"
+                                  style={{ animationDelay: `${index * 0.1}s` }}
+                                >
+                                  {/* Mobile Layout - Stacked */}
+                                  <div className="flex flex-col sm:hidden">
+                                    <div className="relative aspect-square">
+                                      <img
+                                        src={
+                                          playlist.images?.[0]?.url ||
+                                          "/placeholder.svg"
                                         }
-                                      >
-                                        <Play className="h-4 w-4" />
-                                      </Button>
+                                        alt={playlist.name}
+                                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                                      />
+                                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
+                                        <Button
+                                          size="icon"
+                                          className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 hover:scale-110 transition-transform cursor-pointer"
+                                          onClick={() =>
+                                            window.open(
+                                              `https://open.spotify.com/playlist/${playlist.uri?.replace(
+                                                "spotify:playlist:",
+                                                ""
+                                              )}`,
+                                              "_blank"
+                                            )
+                                          }
+                                        >
+                                          <Play className="h-4 w-4" />
+                                        </Button>
+                                      </div>
                                     </div>
+                                    <CardContent className="p-3">
+                                      <h3 className="text-sm font-bold text-white truncate mb-1">
+                                        {playlist.name}
+                                      </h3>
+                                      <p className="text-xs text-gray-300 line-clamp-2 mb-2">
+                                        {playlist.description ||
+                                          "No description available"}
+                                      </p>
+                                      <div className="flex flex-col gap-1 text-xs text-gray-400">
+                                        <span className="truncate">
+                                          By{" "}
+                                          {playlist.owner?.display_name ||
+                                            "Spotify"}
+                                        </span>
+                                        <span>
+                                          {playlist.tracks?.total || 0} tracks
+                                        </span>
+                                      </div>
+                                    </CardContent>
                                   </div>
-                                  <CardContent className="flex flex-col justify-center flex-1 p-3">
-                                    <h3 className="text-sm font-bold text-white truncate mb-1">
-                                      {playlist.name}
-                                    </h3>
-                                    <p className="text-xs text-gray-300 line-clamp-2 mb-2">
-                                      {playlist.description ||
-                                        "No description available"}
-                                    </p>
-                                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                                      <span className="truncate">
-                                        By{" "}
-                                        {playlist.owner?.display_name ||
-                                          "Spotify"}
-                                      </span>
-                                      <span>•</span>
-                                      <span>
-                                        {playlist.tracks?.total || 0} tracks
-                                      </span>
-                                    </div>
-                                  </CardContent>
-                                </div>
 
-                                {/* Desktop Layout - Vertical Card */}
-                                <div className="hidden lg:flex lg:flex-col">
-                                  <div className="relative aspect-square">
-                                    <img
-                                      src={
-                                        playlist.images?.[0]?.url ||
-                                        "/placeholder.svg"
-                                      }
-                                      alt={playlist.name}
-                                      className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-                                      <Button
-                                        size="icon"
-                                        className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 w-12 hover:scale-110 transition-transform cursor-pointer"
-                                        onClick={() =>
-                                          window.open(
-                                            playlist.external_urls?.spotify,
-                                            "_blank"
-                                          )
+                                  {/* Tablet Layout - Horizontal */}
+                                  <div className="hidden sm:flex lg:hidden h-32">
+                                    <div className="flex-shrink-0 w-32 h-32 relative">
+                                      <img
+                                        src={
+                                          playlist.images?.[0]?.url ||
+                                          "/placeholder.svg"
                                         }
-                                      >
-                                        <Play className="h-6 w-6" />
-                                      </Button>
+                                        alt={playlist.name}
+                                        className="object-cover w-full h-full rounded-l-md transition-transform duration-300 group-hover:scale-110"
+                                      />
+                                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
+                                        <Button
+                                          size="icon"
+                                          className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 hover:scale-110 transition-transform cursor-pointer"
+                                          onClick={() =>
+                                            window.open(
+                                              playlist.external_urls?.spotify,
+                                              "_blank"
+                                            )
+                                          }
+                                        >
+                                          <Play className="h-4 w-4" />
+                                        </Button>
+                                      </div>
                                     </div>
+                                    <CardContent className="flex flex-col justify-center flex-1 p-3">
+                                      <h3 className="text-sm font-bold text-white truncate mb-1">
+                                        {playlist.name}
+                                      </h3>
+                                      <p className="text-xs text-gray-300 line-clamp-2 mb-2">
+                                        {playlist.description ||
+                                          "No description available"}
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                                        <span className="truncate">
+                                          By{" "}
+                                          {playlist.owner?.display_name ||
+                                            "Spotify"}
+                                        </span>
+                                        <span>•</span>
+                                        <span>
+                                          {playlist.tracks?.total || 0} tracks
+                                        </span>
+                                      </div>
+                                    </CardContent>
                                   </div>
-                                  <CardContent className="p-4">
-                                    <h3 className="text-base font-bold text-white truncate mb-1">
-                                      {playlist.name}
-                                    </h3>
-                                    <p className="text-sm text-gray-300 line-clamp-2 mb-3">
-                                      {playlist.description ||
-                                        "No description available"}
-                                    </p>
-                                    <div className="flex flex-col gap-1 text-sm text-gray-400">
-                                      <span className="truncate">
-                                        By{" "}
-                                        {playlist.owner?.display_name ||
-                                          "Spotify"}
-                                      </span>
-                                      <span>
-                                        {playlist.tracks?.total || 0} tracks
-                                      </span>
+
+                                  {/* Desktop Layout - Vertical Card */}
+                                  <div className="hidden lg:flex lg:flex-col">
+                                    <div className="relative aspect-square">
+                                      <img
+                                        src={
+                                          playlist.images?.[0]?.url ||
+                                          "/placeholder.svg"
+                                        }
+                                        alt={playlist.name}
+                                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                                      />
+                                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
+                                        <Button
+                                          size="icon"
+                                          className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 w-12 hover:scale-110 transition-transform cursor-pointer"
+                                          onClick={() =>
+                                            window.open(
+                                              playlist.external_urls?.spotify,
+                                              "_blank"
+                                            )
+                                          }
+                                        >
+                                          <Play className="h-6 w-6" />
+                                        </Button>
+                                      </div>
                                     </div>
-                                  </CardContent>
-                                </div>
-                              </Card>
-                            ))
+                                    <CardContent className="p-4">
+                                      <h3 className="text-base font-bold text-white truncate mb-1">
+                                        {playlist.name}
+                                      </h3>
+                                      <p className="text-sm text-gray-300 line-clamp-2 mb-3">
+                                        {playlist.description ||
+                                          "No description available"}
+                                      </p>
+                                      <div className="flex flex-col gap-1 text-sm text-gray-400">
+                                        <span className="truncate">
+                                          By{" "}
+                                          {playlist.owner?.display_name ||
+                                            "Spotify"}
+                                        </span>
+                                        <span>
+                                          {playlist.tracks?.total || 0} tracks
+                                        </span>
+                                      </div>
+                                    </CardContent>
+                                  </div>
+                                </Card>
+                              );
+                            })
                           ) : (
                             <div className="col-span-full text-center py-8 sm:py-12">
                               <div className="flex flex-col items-center gap-4">

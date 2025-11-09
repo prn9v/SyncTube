@@ -29,7 +29,7 @@ export default function Sidebar() {
   const [playlists, setPlaylists] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false); // <-- for mobile
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) => pathname === path;
 
@@ -76,6 +76,7 @@ export default function Sidebar() {
         }
       } else {
         setPlaylists([]);
+        setLoading(false);
       }
     }
     if (session) fetchPlaylists();
@@ -83,12 +84,12 @@ export default function Sidebar() {
 
   const SidebarContent = (
     <div
-      className={`bg-black h-full flex flex-col pb-28 transition-all duration-300 ${
+      className={`bg-black h-full flex flex-col transition-all duration-300 ${
         collapsed ? "w-16" : "w-64"
       }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between p-4 flex-shrink-0">
         <Button 
           onClick={() => router.push("/dashboard")} 
           className="bg-black cursor-pointer hover:bg-green-500"
@@ -122,8 +123,11 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="px-2 space-y-1">
-        {[{ icon: Home, label: "Home", path: "/dashboard" }, { icon: Search, label: "Search", path: "/search" }].map(item => (
+      <nav className="px-2 space-y-1 flex-shrink-0">
+        {[
+          { icon: Home, label: "Home", path: "/dashboard" }, 
+          { icon: Search, label: "Search", path: "/search" }
+        ].map(item => (
           <Button
             key={item.path}
             variant="ghost"
@@ -143,11 +147,14 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <Separator className="my-4" />
+      <Separator className="my-4 flex-shrink-0" />
 
       {/* Actions */}
-      <nav className="px-2 space-y-1">
-        {[{ icon: PlusCircle, label: "Create Playlist", path: "/create-playlist" }, { icon: Heart, label: "Liked Songs", path: "/likedSongs" }].map(item => (
+      <nav className="px-2 space-y-1 flex-shrink-0">
+        {[
+          { icon: PlusCircle, label: "Create Playlist", path: "/create-playlist" }, 
+          { icon: Heart, label: "Liked Songs", path: "/likedSongs" }
+        ].map(item => (
           <Button
             key={item.path}
             variant="ghost"
@@ -167,12 +174,12 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Scrollable Section */}
+      {/* Scrollable Section - Groups & Playlists */}
       {!collapsed && (
-        <div className="flex-1 overflow-auto mt-4 px-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden mt-4 px-2 min-h-0">
           {/* Groups */}
-          <div className="px-2 mb-4">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2 px-2">
               <h3 className="text-sm font-semibold text-white">Your Groups</h3>
               <Users className="h-4 w-4 text-white" />
             </div>
@@ -181,31 +188,31 @@ export default function Sidebar() {
                 <Button
                   key={group._id || idx}
                   variant="ghost"
-                  className="w-full justify-start text-gray-400 hover:text-white hover:bg-green-500"
+                  className="w-full justify-start text-gray-400 hover:text-white hover:bg-green-500 mb-1"
                   onClick={() => {
                     router.push(`/group-session/${group.inviteCode}`);
                     setMobileOpen(false);
                   }}
                 >
-                  <Users className="h-4 w-4 mr-3 text-white" />
-                  {group.groupName}
+                  <Users className="h-4 w-4 mr-3 text-white flex-shrink-0" />
+                  <span className="truncate">{group.groupName}</span>
                 </Button>
               ))
             ) : (
-              <p className="text-gray-400 text-sm text-center">No groups yet</p>
+              <p className="text-gray-400 text-sm text-center px-2">No groups yet</p>
             )}
           </div>
 
           {/* Playlists */}
           <Separator className="my-4" />
-          <div className="px-2">
-            <h3 className="text-sm font-semibold text-white mb-2">Your Playlists</h3>
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-white mb-2 px-2">Your Playlists</h3>
             {playlists.length > 0 ? (
               playlists.map((playlist, idx) => (
                 <Button
                   key={playlist._id || idx}
                   variant="ghost"
-                  className="w-full justify-start text-gray-400 hover:text-white hover:bg-green-500"
+                  className="w-full justify-start text-gray-400 hover:text-white hover:bg-green-500 mb-1"
                   onClick={() => {
                     router.push(`/playlist/${playlist._id}`);
                     setMobileOpen(false);
@@ -215,25 +222,25 @@ export default function Sidebar() {
                     <img
                       src={playlist.coverUrl}
                       alt={playlist.playlistName}
-                      className="w-7 h-7 rounded object-cover mr-2"
+                      className="w-7 h-7 rounded object-cover mr-2 flex-shrink-0"
                     />
                   )}
-                  {playlist.playlistName || "Untitled Playlist"}
+                  <span className="truncate">{playlist.playlistName || "Untitled Playlist"}</span>
                 </Button>
               ))
             ) : (
-              <p className="text-gray-400 text-sm text-center">No playlists yet</p>
+              <p className="text-gray-400 text-sm text-center px-2">No playlists yet</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Bottom Nav */}
-      <div className="mt-auto px-2 py-4">
-        <Separator className="my-4" />
+      {/* Bottom Nav - Fixed at bottom with space for music player */}
+      <div className="mt-auto px-2 py-4 flex-shrink-0 mb-20 md:mb-24">
+        <Separator className="mb-4" />
         <Button
           variant="ghost"
-          className="w-full justify-start text-gray-400 hover:text-white hover:bg-green-500"
+          className="w-full justify-start text-gray-400 hover:text-white hover:bg-green-500 mb-2"
           onClick={() => {
             router.push("/profile");
             setMobileOpen(false);
@@ -244,7 +251,7 @@ export default function Sidebar() {
         </Button>
         <Button
           variant="ghost"
-          className="w-full justify-start text-gray-400 hover:text-white hover:bg-green-500"
+          className="w-full justify-start text-gray-400 hover:text-white hover:bg-red-500"
           onClick={() => signOut()}
         >
           <LogOut className={`h-5 w-5 ${collapsed ? "mx-auto" : "mr-3"}`} />
