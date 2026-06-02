@@ -101,14 +101,17 @@ const CreatePlaylist = () => {
 
   const uploadToCloudinary = async (base64Image) => {
     if (!base64Image) return null;
+    console.log("Sending image, length:", base64Image.length);
+    console.log("Starts with:", base64Image.substring(0, 30));
 
     try {
       const { data } = await axios.post("/api/upload", { image: base64Image });
+      console.log("Upload response:", data);
       return data.url;
     } catch (err) {
-      console.error("Image upload failed:", err);
-      toast.error("Failed to upload cover image, continuing without it");
-      return null; // Don't block playlist creation if image fails
+      console.error("Upload failed:", err.response?.data || err.message);
+      toast.error("Failed to upload cover image");
+      return null;
     }
   };
 
