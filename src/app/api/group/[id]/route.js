@@ -187,15 +187,15 @@ export async function POST(req, context) {
     const senderObjectId =
       typeof sender === "string" ? new ObjectId(sender) : sender;
 
-    const isMember = group.members?.some(
-      (m) => m.toString() === senderObjectId.toString()
-    );
-    if (!isMember) {
-      return NextResponse.json(
-        { error: "Sender is not a member of this group" },
-        { status: 403 }
-      );
-    }
+    // const isMember = group.members?.some(
+    //   (m) => m.toString() === senderObjectId.toString()
+    // );
+    // if (!isMember) {
+    //   return NextResponse.json(
+    //     { error: "Sender is not a member of this group" },
+    //     { status: 403 }
+    //   );
+    // }
 
     const message = {
       _id: new ObjectId(),

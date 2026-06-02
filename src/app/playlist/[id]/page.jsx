@@ -42,6 +42,7 @@ const PlaylistDetailPage = () => {
           });
           if (!response.ok) throw new Error('Failed to fetch playlist');
           const data = await response.json();
+          console.log(data);
           if (data.playlists && data.playlists.length > 0) {
             setPlaylistData(data.playlists[0]);
             setSongs(data.playlists[0].songs || []);

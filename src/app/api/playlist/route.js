@@ -74,8 +74,8 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const body = await request.json();
-    const { owner } = body;
+    // const body = await request.json();
+    // const { owner } = body;
 
     if (!owner) {
       return NextResponse.json(

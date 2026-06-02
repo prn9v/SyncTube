@@ -28,7 +28,8 @@ const CreatePlaylist = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSongs, setSelectedSongs] = useState([]);
   const { data: session } = useSession();
-  const { searchResults, loading, error, searchAll } = useSpotifyComprehensiveSearch();
+  const { searchResults, loading, error, searchAll } =
+    useSpotifyComprehensiveSearch();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Format duration from milliseconds
@@ -39,9 +40,14 @@ const CreatePlaylist = () => {
   };
 
   // Get best Spotify image
-  const getImageUrl = (images, fallback = "https://via.placeholder.com/200?text=No+Image") => {
+  const getImageUrl = (
+    images,
+    fallback = "https://via.placeholder.com/200?text=No+Image",
+  ) => {
     if (!images || images.length === 0) return fallback;
-    const mediumImage = images.find((img) => img.width >= 200 && img.width <= 400);
+    const mediumImage = images.find(
+      (img) => img.width >= 200 && img.width <= 400,
+    );
     return mediumImage ? mediumImage.url : images[0].url;
   };
 
@@ -78,7 +84,8 @@ const CreatePlaylist = () => {
           {
             id: track.id,
             title: track.name,
-            artist: track.artists?.map((a) => a.name).join(", ") || "Unknown Artist",
+            artist:
+              track.artists?.map((a) => a.name).join(", ") || "Unknown Artist",
             album: track.album?.name || "Unknown Album",
             duration: formatDuration(track.duration_ms),
             spotifyData: track,
@@ -92,6 +99,19 @@ const CreatePlaylist = () => {
     setSelectedSongs((prev) => prev.filter((s) => s.id !== songId));
   };
 
+  const uploadToCloudinary = async (base64Image) => {
+    if (!base64Image) return null;
+
+    try {
+      const { data } = await axios.post("/api/upload", { image: base64Image });
+      return data.url;
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      toast.error("Failed to upload cover image, continuing without it");
+      return null; // Don't block playlist creation if image fails
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -99,12 +119,10 @@ const CreatePlaylist = () => {
       toast.error("Please enter a playlist name");
       return;
     }
-
     if (!session?.user?.id) {
       toast.error("Please log in to create a playlist");
       return;
     }
-
     if (selectedSongs.length === 0) {
       toast.error("Please select at least one song");
       return;
@@ -113,16 +131,22 @@ const CreatePlaylist = () => {
     setIsSubmitting(true);
 
     try {
+      // Upload image first if exists
+      let coverUrl = null;
+      if (imagePreview) {
+        toast.info("Uploading cover image..."); // optional UX feedback
+        coverUrl = await uploadToCloudinary(imagePreview);
+      }
+
       const playlistPayload = {
         playlistName: playlistData.name,
         description: playlistData.description,
-        coverUrl: imagePreview,
+        coverUrl, // ✅ now a proper Cloudinary URL string
         songs: selectedSongs,
         owner: session.user.id,
       };
 
       const { data } = await axios.post("/api/playlist", playlistPayload);
-
       toast.success(`Playlist "${playlistData.name}" created successfully! 🎶`);
 
       // Reset form
@@ -155,12 +179,14 @@ const CreatePlaylist = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => router.push("/playlist")}
+                  onClick={() => router.push("/create-playlist")}
                   className="text-spotify-offwhite hover:text-white"
                 >
                   <ArrowLeft className="h-6 w-6 text-white" />
                 </Button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">Create Playlist</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                  Create Playlist
+                </h1>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -168,7 +194,9 @@ const CreatePlaylist = () => {
                 <div>
                   <Card className="bg-spotify-light border-spotify-dark">
                     <CardHeader>
-                      <CardTitle className="text-white text-xl">Playlist Details</CardTitle>
+                      <CardTitle className="text-white text-xl">
+                        Playlist Details
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handleSubmit} className="space-y-6">
@@ -176,11 +204,17 @@ const CreatePlaylist = () => {
                         <div className="flex items-start gap-6">
                           <div className="w-40 h-40 bg-spotify-dark rounded-lg flex items-center justify-center border-2 border-dashed border-spotify-offwhite hover:border-green-500 transition-colors cursor-pointer relative overflow-hidden">
                             {imagePreview ? (
-                              <img src={imagePreview} alt="Playlist cover" className="w-full h-full object-cover" />
+                              <img
+                                src={imagePreview}
+                                alt="Playlist cover"
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
                               <div className="text-center">
                                 <Music className="h-12 w-12 text-white mx-auto mb-2" />
-                                <p className="text-sm text-gray-400">Add Cover</p>
+                                <p className="text-sm text-gray-400">
+                                  Add Cover
+                                </p>
                               </div>
                             )}
                             <input
@@ -193,7 +227,10 @@ const CreatePlaylist = () => {
 
                           <div className="flex-1 space-y-4">
                             <div>
-                              <Label htmlFor="name" className="text-white font-medium">
+                              <Label
+                                htmlFor="name"
+                                className="text-white font-medium"
+                              >
                                 Playlist Name *
                               </Label>
                               <Input
@@ -208,7 +245,10 @@ const CreatePlaylist = () => {
                               />
                             </div>
                             <div>
-                              <Label htmlFor="description" className="text-white font-medium">
+                              <Label
+                                htmlFor="description"
+                                className="text-white font-medium"
+                              >
                                 Description
                               </Label>
                               <Textarea
@@ -236,14 +276,20 @@ const CreatePlaylist = () => {
                                   className="flex items-center justify-between py-2 border-b border-spotify-light last:border-b-0"
                                 >
                                   <div>
-                                    <p className="text-white font-medium">{song.title}</p>
-                                    <p className="text-gray-400 text-sm">{song.artist}</p>
+                                    <p className="text-white font-medium">
+                                      {song.title}
+                                    </p>
+                                    <p className="text-gray-400 text-sm">
+                                      {song.artist}
+                                    </p>
                                   </div>
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => removeSongFromPlaylist(song.id)}
+                                    onClick={() =>
+                                      removeSongFromPlaylist(song.id)
+                                    }
                                     className="h-8 w-8 text-white hover:text-white"
                                   >
                                     <X className="h-4 w-4 text-white" />
@@ -258,7 +304,7 @@ const CreatePlaylist = () => {
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.push("/playlist")}
+                            onClick={() => router.push("/create-playlist")}
                             className="border-grey-400 bg-black text-white hover:text-green-400"
                           >
                             Cancel
@@ -280,7 +326,9 @@ const CreatePlaylist = () => {
                 <div>
                   <Card className="bg-spotify-light border-spotify-dark">
                     <CardHeader>
-                      <CardTitle className="text-white text-xl">Add Songs</CardTitle>
+                      <CardTitle className="text-white text-xl">
+                        Add Songs
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handleSearch} className="relative mb-6">
@@ -303,57 +351,67 @@ const CreatePlaylist = () => {
                         <div className="flex justify-center py-8">
                           <div className="animate-pulse text-center">
                             <Music className="h-8 w-8 text-spotify-green mx-auto" />
-                            <p className="mt-2 text-sm text-spotify-offwhite">Searching...</p>
+                            <p className="mt-2 text-sm text-spotify-offwhite">
+                              Searching...
+                            </p>
                           </div>
                         </div>
                       )}
 
                       <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {searchResults.tracks?.length > 0 ? (
-                          searchResults.tracks.map((track) => {
-                            const isSelected = selectedSongs.find((s) => s.id === track.id);
-                            return (
-                              <div
-                                key={track.id}
-                                className="flex items-center gap-3 p-3 bg-spotify-dark rounded-lg hover:bg-opacity-80 transition-colors"
-                              >
-                                <Checkbox
-                                  checked={!!isSelected}
-                                  onCheckedChange={() => toggleSongSelection(track)}
-                                  className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                                />
-                                <div className="h-10 w-10 bg-spotify-black rounded overflow-hidden flex-shrink-0">
-                                  {track.album?.images?.[0] ? (
-                                    <img
-                                      src={track.album.images[0].url}
-                                      alt={track.album.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <Music className="h-6 w-6 m-2 text-white" />
-                                  )}
+                        {searchResults.tracks?.length > 0
+                          ? searchResults.tracks.map((track) => {
+                              const isSelected = selectedSongs.find(
+                                (s) => s.id === track.id,
+                              );
+                              return (
+                                <div
+                                  key={track.id}
+                                  className="flex items-center gap-3 p-3 bg-spotify-dark rounded-lg hover:bg-opacity-80 transition-colors"
+                                >
+                                  <Checkbox
+                                    checked={!!isSelected}
+                                    onCheckedChange={() =>
+                                      toggleSongSelection(track)
+                                    }
+                                    className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                                  />
+                                  <div className="h-10 w-10 bg-spotify-black rounded overflow-hidden flex-shrink-0">
+                                    {track.album?.images?.[0] ? (
+                                      <img
+                                        src={track.album.images[0].url}
+                                        alt={track.album.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <Music className="h-6 w-6 m-2 text-white" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-white truncate">
+                                      {track.name}
+                                    </p>
+                                    <p className="text-sm text-gray-400 truncate">
+                                      {track.artists
+                                        ?.map((a) => a.name)
+                                        .join(", ")}{" "}
+                                      • {track.album?.name || "Unknown Album"}
+                                    </p>
+                                  </div>
+                                  <span className="text-gray-400 text-sm">
+                                    {track.duration_ms
+                                      ? formatDuration(track.duration_ms)
+                                      : "Unknown"}
+                                  </span>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-white truncate">{track.name}</p>
-                                  <p className="text-sm text-gray-400 truncate">
-                                    {track.artists?.map((a) => a.name).join(", ")} •{" "}
-                                    {track.album?.name || "Unknown Album"}
-                                  </p>
-                                </div>
-                                <span className="text-gray-400 text-sm">
-                                  {track.duration_ms ? formatDuration(track.duration_ms) : "Unknown"}
-                                </span>
+                              );
+                            })
+                          : searchQuery &&
+                            !loading && (
+                              <div className="py-8 text-center text-gray-400">
+                                No tracks found. Try a different song.
                               </div>
-                            );
-                          })
-                        ) : (
-                          searchQuery &&
-                          !loading && (
-                            <div className="py-8 text-center text-gray-400">
-                              No tracks found. Try a different song.
-                            </div>
-                          )
-                        )}
+                            )}
                       </div>
                     </CardContent>
                   </Card>
