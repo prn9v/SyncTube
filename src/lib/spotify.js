@@ -45,7 +45,12 @@ class SpotifyAPI {
       );
 
       if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status}`);
+        let errorMsg = `Spotify API error: ${response.status}`;
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg += ` - ${errText}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -62,7 +67,7 @@ class SpotifyAPI {
       const encodedQuery = encodeURIComponent(query);
       
       const response = await fetch(
-        `${this.baseURL}/search?q=${encodedQuery}&type=track,artist,playlist&limit=${limit}&offset=${offset}`,
+        `${this.baseURL}/search?q=${encodedQuery}&type=track,artist&limit=${limit}&offset=${offset}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -71,7 +76,12 @@ class SpotifyAPI {
       );
 
       if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status}`);
+        let errorMsg = `Spotify API error: ${response.status}`;
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg += ` - ${errText}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -107,7 +117,12 @@ class SpotifyAPI {
       );
 
       if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status}`);
+        let errorMsg = `Spotify API error: ${response.status}`;
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg += ` - ${errText}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -133,7 +148,12 @@ class SpotifyAPI {
       );
 
       if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status}`);
+        let errorMsg = `Spotify API error: ${response.status}`;
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg += ` - ${errText}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -155,7 +175,12 @@ class SpotifyAPI {
       });
 
       if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status}`);
+        let errorMsg = `Spotify API error: ${response.status}`;
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg += ` - ${errText}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       const track = await response.json();
@@ -177,7 +202,12 @@ class SpotifyAPI {
       });
 
       if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status}`);
+        let errorMsg = `Spotify API error: ${response.status}`;
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg += ` - ${errText}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       const tracks = await response.json();
@@ -199,7 +229,12 @@ class SpotifyAPI {
       });
 
       if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status}`);
+        let errorMsg = `Spotify API error: ${response.status}`;
+        try {
+          const errText = await response.text();
+          if (errText) errorMsg += ` - ${errText}`;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
